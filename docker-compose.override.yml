@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  postgres:
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=figure_mcp_dev
+      - POSTGRES_USER=figure_mcp_dev
+      - POSTGRES_PASSWORD=figure_mcp_dev_password
+
+  redis:
+    ports:
+      - "6379:6379"
+
+  chromadb:
+    ports:
+      - "8000:8000"
+
+  document-processor:
+    volumes:
+      - ./packages/document-processor:/app
+    environment:
+      - PYTHONPATH=/app
+      - REDIS_URL=redis://redis:6379
+      - POSTGRES_URL=postgresql://figure_mcp_dev:figure_mcp_dev_password@postgres:5432/figure_mcp_dev
+    command: python -m flask run --host=0.0.0.0 --port=8080 --debug
+
+  mcp-server:
+    volumes:
+      - ./packages/mcp-server:/app/packages/mcp-server
+      - ./packages/rag-engine:/app/packages/rag-engine
+      - ./packages/integrations:/app/packages/integrations
+    environment:
+      - NODE_ENV=development
+      - REDIS_URL=redis://redis:6379
+      - POSTGRES_URL=postgresql://figure_mcp_dev:figure_mcp_dev_password@postgres:5432/figure_mcp_dev
+    command: npm run dev
+
+  web-ui:
+    volumes:
+      - ./packages/web-ui:/app/packages/web-ui
+    environment:
+      - VITE_MCP_SERVER_URL=http://localhost:3000
+      - VITE_API_BASE_URL=http://localhost:3000/api
+    command: npm run dev
+    ports:
+      - "5173:5173"
+
+  nginx:
+    ports:
+      - "80:80"
+      - "443:443" 

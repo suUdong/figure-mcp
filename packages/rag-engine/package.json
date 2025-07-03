@@ -1,0 +1,44 @@
+{
+  "name": "@figure-mcp/rag-engine",
+  "version": "1.0.0",
+  "description": "Figure-MCP RAG Engine - 검색 증강 생성 시스템",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "jest",
+    "lint": "eslint src --ext .ts",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@figure-mcp/document-processor": "workspace:*",
+    "openai": "^4.20.1",
+    "anthropic": "^0.9.1",
+    "axios": "^1.6.2",
+    "lodash": "^4.17.21",
+    "uuid": "^9.0.1",
+    "winston": "^3.11.0",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/lodash": "^4.14.202",
+    "@types/node": "^20.9.0",
+    "@types/uuid": "^9.0.7",
+    "typescript": "^5.2.2",
+    "jest": "^29.7.0",
+    "@types/jest": "^29.5.8",
+    "ts-jest": "^29.1.1",
+    "eslint": "^8.54.0"
+  },
+  "keywords": [
+    "rag",
+    "llm",
+    "retrieval",
+    "generation",
+    "vector-search",
+    "ai"
+  ],
+  "author": "Figure-MCP Team",
+  "license": "MIT"
+} 
