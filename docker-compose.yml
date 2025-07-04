@@ -1,119 +1,18 @@
 version: '3.8'
 
 services:
-  # PostgreSQL Database
-  postgres:
-    image: postgres:15
-    environment:
-      POSTGRES_DB: figure_mcp
-      POSTGRES_USER: figure_mcp
-      POSTGRES_PASSWORD: figure_mcp_password
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./sql:/docker-entrypoint-initdb.d
-    ports:
-      - "5432:5432"
-    networks:
-      - figure-mcp-network
-
-  # Redis Cache
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    networks:
-      - figure-mcp-network
-
-  # ChromaDB Vector Database
-  chromadb:
-    image: chromadb/chroma:latest
-    ports:
-      - "8000:8000"
-    volumes:
-      - chroma_data:/chroma/chroma
-    environment:
-      - CHROMA_SERVER_HOST=0.0.0.0
-    networks:
-      - figure-mcp-network
-
-  # Document Processor (Python)
-  document-processor:
-    build:
-      context: .
-      dockerfile: packages/document-processor/Dockerfile
-    environment:
-      - PYTHONPATH=/app
-      - REDIS_URL=redis://redis:6379
-      - POSTGRES_URL=postgresql://figure_mcp:figure_mcp_password@postgres:5432/figure_mcp
-      - CHROMA_HOST=chromadb
-      - CHROMA_PORT=8000
-    depends_on:
-      - postgres
-      - redis
-      - chromadb
-    networks:
-      - figure-mcp-network
-    volumes:
-      - ./data:/app/data
-
   # MCP Server (Node.js)
   mcp-server:
     build:
-      context: .
-      dockerfile: packages/mcp-server/Dockerfile
+      context: ./figure-mcp-server
+      dockerfile: Dockerfile
     environment:
       - NODE_ENV=production
-      - REDIS_URL=redis://redis:6379
-      - POSTGRES_URL=postgresql://figure_mcp:figure_mcp_password@postgres:5432/figure_mcp
-      - DOCUMENT_PROCESSOR_URL=http://document-processor:8080
     ports:
       - "3000:3000"
-    depends_on:
-      - postgres
-      - redis
-      - document-processor
-    networks:
-      - figure-mcp-network
-    volumes:
-      - ./data:/app/data
-
-  # Web UI (React)
-  web-ui:
-    build:
-      context: .
-      dockerfile: packages/web-ui/Dockerfile
-    environment:
-      - VITE_MCP_SERVER_URL=http://localhost:3000
-      - VITE_API_BASE_URL=http://localhost:3000/api
-    ports:
-      - "5173:5173"
-    depends_on:
-      - mcp-server
-    networks:
-      - figure-mcp-network
-
-  # Nginx Reverse Proxy
-  nginx:
-    image: nginx:alpine
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf
-      - ./ssl:/etc/nginx/ssl
-    depends_on:
-      - web-ui
-      - mcp-server
     networks:
       - figure-mcp-network
 
 networks:
   figure-mcp-network:
-    driver: bridge
-
-volumes:
-  postgres_data:
-  redis_data:
-  chroma_data: 
+    driver: bridge 
