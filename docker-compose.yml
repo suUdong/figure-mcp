@@ -1,6 +1,32 @@
 version: '3.8'
 
 services:
+  # Figure Backend Office (Admin UI)
+  figure-backend-office:
+    build:
+      context: ./figure-backend-office
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - HOSTNAME=0.0.0.0
+      - BACKEND_API_URL=http://figure-backend:8001
+      - NEXT_PUBLIC_API_URL=http://localhost:8001
+      - NEXT_TELEMETRY_DISABLED=1
+    depends_on:
+      figure-backend:
+        condition: service_healthy
+    networks:
+      - figure-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) }).on('error', () => { process.exit(1) })"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
   # Figure MCP Server
   figure-mcp-server:
     build:
@@ -99,7 +125,7 @@ services:
     networks:
       - figure-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v2/heartbeat"]
       interval: 30s
       timeout: 10s
       retries: 3

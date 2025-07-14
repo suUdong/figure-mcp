@@ -3,6 +3,7 @@ fastapi==0.115.13
 uvicorn[standard]==0.32.1
 pydantic==2.10.6
 pydantic-settings==2.8.0
+python-multipart==0.0.6
 
 # Vector Database & Embeddings (Pydantic 2.x 호환 버전)
 chromadb==0.4.18
@@ -21,7 +22,7 @@ jira==3.8.0
 requests==2.32.3
 
 # File Handling
-aiofiles==24.1.0
+aiofiles==23.2.0
 
 # System Monitoring
 psutil==6.1.0

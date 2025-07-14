@@ -262,13 +262,26 @@ async def websocket_endpoint(websocket: WebSocket):
             metrics = job_service.get_system_metrics()
             active_jobs = job_service.get_active_jobs()
             
+            # JSON 직렬화 가능한 형태로 변환
+            def convert_job_to_dict(job):
+                job_dict = job.dict()
+                # 모든 datetime 필드를 문자열로 변환
+                for key, value in job_dict.items():
+                    if isinstance(value, datetime):
+                        job_dict[key] = value.isoformat()
+                    elif value is None:
+                        job_dict[key] = None
+                return job_dict
+                
             data = {
                 "type": "metrics_update",
-                "metrics": metrics.dict(),
-                "active_jobs": [job.dict() for job in active_jobs]
+                "metrics": {
+                    **{k: v.isoformat() if isinstance(v, datetime) else v for k, v in metrics.dict().items()}
+                },
+                "active_jobs": [convert_job_to_dict(job) for job in active_jobs]
             }
             
-            await websocket.send_text(json.dumps(data, default=str))
+            await websocket.send_text(json.dumps(data))
             await asyncio.sleep(5)
             
     except WebSocketDisconnect:

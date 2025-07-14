@@ -92,15 +92,15 @@ class RAGService:
                     temperature=0.1,
                     max_tokens=1000
                 )
-            else:
+                        else:
                 # 기본값으로 Gemini 사용
                 from langchain_google_genai import ChatGoogleGenerativeAI
-            self._llm = ChatGoogleGenerativeAI(
-                model=settings.gemini_model,
+                self._llm = ChatGoogleGenerativeAI(
+                    model=settings.gemini_model,
                     google_api_key=settings.gemini_api_key,
-                temperature=0.1,
+                    temperature=0.1,
                     max_output_tokens=1000
-            )
+                )
             
             # 벡터 스토어 서비스 초기화
             await vector_store_service.initialize()
@@ -233,15 +233,15 @@ class RAGService:
     async def get_service_status(self) -> Dict[str, Any]:
         """서비스 상태 조회"""
         vector_info = await vector_store_service.get_collection_info()
-            
-            return {
+        
+        return {
             "rag_service_initialized": self._initialized,
             "llm_provider": settings.llm_provider,
             "embedding_provider": settings.embedding_provider,
             "current_llm_model": settings.gemini_model if settings.llm_provider == "gemini" else settings.openai_model,
             "current_embedding_model": settings.gemini_embedding_model if settings.embedding_provider == "gemini" else settings.openai_embedding_model,
             "vector_store": vector_info
-            }
+        }
 
 
 # 글로벌 인스턴스

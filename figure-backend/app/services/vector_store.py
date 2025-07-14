@@ -4,6 +4,7 @@ ChromaDB Vector Store Service
 """
 import uuid
 import logging
+import asyncio
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 
@@ -30,9 +31,14 @@ class VectorStoreService:
     async def initialize(self) -> None:
         """비동기 초기화"""
         try:
-            # ChromaDB 클라이언트 초기화 (임시로 메모리 모드 사용)
-            logger.info("ChromaDB 메모리 모드로 초기화 중...")
-            self._client = chromadb.Client(
+            # ChromaDB 클라이언트 초기화 (persistent 모드 사용)
+            logger.info("ChromaDB persistent 모드로 초기화 중...")
+            import os
+            persist_directory = "/app/data/chroma"
+            os.makedirs(persist_directory, exist_ok=True)
+            
+            self._client = chromadb.PersistentClient(
+                path=persist_directory,
                 settings=ChromaSettings(
                     anonymized_telemetry=False,
                     allow_reset=True
@@ -55,8 +61,8 @@ class VectorStoreService:
             else:
                 # 기본값으로 Gemini 사용
                 from langchain_google_genai import GoogleGenerativeAIEmbeddings
-            self._embeddings = GoogleGenerativeAIEmbeddings(
-                model=settings.gemini_embedding_model,
+                self._embeddings = GoogleGenerativeAIEmbeddings(
+                    model=settings.gemini_embedding_model,
                     google_api_key=settings.gemini_api_key
                 )
             
@@ -118,11 +124,30 @@ class VectorStoreService:
                     
                 chunk_metadatas.append(chunk_metadata)
                     
+            # 임베딩 생성
+            try:
+                embeddings = await asyncio.get_event_loop().run_in_executor(
+                    None, self._embeddings.embed_documents, chunks
+                )
+            except Exception as e:
+                logger.error(f"임베딩 생성 실패: {e}")
+                # 임베딩 생성 실패 시 None으로 ChromaDB가 자동 생성하도록 함
+                embeddings = None
+            
             # ChromaDB에 추가
-                    self._collection.add(
-                documents=chunks,
-                metadatas=chunk_metadatas,
-                ids=chunk_ids
+            if embeddings:
+                self._collection.add(
+                    documents=chunks,
+                    metadatas=chunk_metadatas,
+                    ids=chunk_ids,
+                    embeddings=embeddings
+                )
+            else:
+                # 임베딩이 없으면 ChromaDB가 자동 생성
+                self._collection.add(
+                    documents=chunks,
+                    metadatas=chunk_metadatas,
+                    ids=chunk_ids
                 )
             
             logger.info(f"문서 추가 완료: {doc_id} ({len(chunks)}개 청크)")
