@@ -92,7 +92,7 @@ class RAGService:
                     temperature=0.1,
                     max_tokens=1000
                 )
-                        else:
+            else:
                 # 기본값으로 Gemini 사용
                 from langchain_google_genai import ChatGoogleGenerativeAI
                 self._llm = ChatGoogleGenerativeAI(

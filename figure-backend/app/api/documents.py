@@ -412,12 +412,94 @@ async def delete_document(
 
 
 @router.get(
-    "/",
+    "",
     response_model=APIResponse,
     summary="문서 목록 조회",
     description="벡터 데이터베이스에 저장된 모든 문서 목록을 조회합니다."
 )
 async def get_documents(
+    service: object = Depends(get_vector_store_service)
+) -> APIResponse:
+    """문서 목록 조회"""
+    try:
+        # ChromaDB에서 모든 문서 정보 가져오기
+        collection_info = await service.get_collection_info()
+        
+        # 컬렉션이 비어있다면 빈 목록 반환
+        if collection_info.get("total_documents", 0) == 0:
+            return APIResponse(
+                success=True,
+                message="문서 목록 조회 성공",
+                data={"documents": [], "total": 0}
+            )
+        
+        # 모든 문서 조회 (ChromaDB의 get() 메서드 사용)
+        collection = service._collection
+        if collection is None:
+            return APIResponse(
+                success=True,
+                message="문서 목록 조회 성공",
+                data={"documents": [], "total": 0}
+            )
+        
+        # 모든 문서 ID와 메타데이터 가져오기
+        results = collection.get()
+        
+        # 문서 정보 구성
+        documents = []
+        processed_doc_ids = set()
+        
+        for i, doc_id in enumerate(results.get("ids", [])):
+            metadata = results.get("metadatas", [{}])[i] if i < len(results.get("metadatas", [])) else {}
+            
+            # 원본 문서 ID 추출 (chunk ID에서 _chunk_X 부분 제거)
+            original_doc_id = doc_id.split("_chunk_")[0] if "_chunk_" in doc_id else doc_id
+            
+            # 이미 처리된 문서는 건너뛰기 (중복 제거)
+            if original_doc_id in processed_doc_ids:
+                continue
+                
+            processed_doc_ids.add(original_doc_id)
+            
+            document_info = {
+                "id": original_doc_id,
+                "title": metadata.get("title", "제목 없음"),
+                "doc_type": metadata.get("doc_type", "unknown"),
+                "created_at": metadata.get("created_at"),
+                "site_id": metadata.get("site_id"),
+                "source_url": metadata.get("source_url"),
+                "total_chunks": metadata.get("total_chunks", 1)
+            }
+            
+            documents.append(document_info)
+        
+        # 생성일시 기준 내림차순 정렬
+        documents.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+        
+        return APIResponse(
+            success=True,
+            message="문서 목록 조회 성공",
+            data={
+                "documents": documents,
+                "total": len(documents)
+            }
+        )
+        
+    except Exception as e:
+        logger.error(f"문서 목록 조회 실패: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"문서 목록 조회 실패: {str(e)}"
+        )
+
+
+@router.get(
+    "/list",
+    response_model=APIResponse,
+    summary="문서 목록 조회",
+    description="벡터 데이터베이스에 저장된 모든 문서 목록을 조회합니다."
+)
+async def list_documents(
     service: object = Depends(get_vector_store_service)
 ) -> APIResponse:
     """문서 목록 조회"""

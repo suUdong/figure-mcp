@@ -34,15 +34,29 @@ class VectorStoreService:
             # ChromaDB 클라이언트 초기화 (persistent 모드 사용)
             logger.info("ChromaDB persistent 모드로 초기화 중...")
             import os
+            
+            # ChromaDB telemetry 완전 비활성화
+            os.environ["ANONYMIZED_TELEMETRY"] = "False"
+            os.environ["CHROMA_TELEMETRY"] = "False"
+            
             persist_directory = "/app/data/chroma"
             os.makedirs(persist_directory, exist_ok=True)
             
+            # telemetry 비활성화 설정
+            chroma_settings = ChromaSettings(
+                anonymized_telemetry=False,
+                allow_reset=True
+            )
+            
+            # chroma_telemetry 옵션이 있으면 추가 (버전 호환성)
+            try:
+                chroma_settings.chroma_telemetry = False
+            except AttributeError:
+                pass  # 구버전에서는 이 옵션이 없을 수 있음
+            
             self._client = chromadb.PersistentClient(
                 path=persist_directory,
-                settings=ChromaSettings(
-                    anonymized_telemetry=False,
-                    allow_reset=True
-                )
+                settings=chroma_settings
             )
             
             # 임베딩 프로바이더에 따라 임베딩 함수 초기화

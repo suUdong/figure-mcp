@@ -14,7 +14,7 @@ export function useDocuments() {
   const { data: documents, isLoading, error, refetch } = useQuery({
     queryKey: ['documents'],
     queryFn: async () => {
-      const response = await api.get('/documents')
+      const response = await api.get('/documents/list')
       return response.data.data.documents // APIResponse 구조에서 실제 문서 배열 추출
     }
   })
