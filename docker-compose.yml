@@ -1,0 +1,131 @@
+version: '3.8'
+
+services:
+  # Figure MCP Server
+  figure-mcp-server:
+    build:
+      context: ./figure-mcp-server
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    volumes:
+      - ./figure-mcp-server:/app
+      - /app/node_modules
+    networks:
+      - figure-network
+
+  # Figure Backend API
+  figure-backend:
+    build:
+      context: ./figure-backend
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      # App Configuration
+      - FIGURE_APP_NAME=Figure Backend
+      - FIGURE_DEBUG=false
+      - FIGURE_API_VERSION=v1
+      
+      # Server Configuration
+      - FIGURE_HOST=0.0.0.0
+      - FIGURE_PORT=8001
+      
+      # Provider 설정 (헥사고날 아키텍처)
+      - FIGURE_LLM_PROVIDER=gemini
+      - FIGURE_EMBEDDING_PROVIDER=gemini
+      
+      # Google Gemini API Configuration (환경 변수에서 설정)
+      - FIGURE_GEMINI_API_KEY=${FIGURE_GEMINI_API_KEY}
+      - FIGURE_GEMINI_MODEL=gemini-1.5-flash
+      - FIGURE_GEMINI_EMBEDDING_MODEL=models/text-embedding-004
+      
+      # Groq API Configuration (Optional)
+      - FIGURE_GROQ_API_KEY=${FIGURE_GROQ_API_KEY}
+      - FIGURE_GROQ_MODEL=llama3-8b-8192
+      
+      # OpenAI API Configuration (Optional)
+      - FIGURE_OPENAI_API_KEY=${FIGURE_OPENAI_API_KEY}
+      - FIGURE_OPENAI_EMBEDDING_MODEL=text-embedding-3-small
+      
+      # Storage Configuration
+      - FIGURE_STORAGE_PROVIDER=local
+      - FIGURE_LOCAL_STORAGE_PATH=/app/storage
+      
+      # Database Configuration
+      - FIGURE_DATABASE_URL=sqlite:///./data/figure.db
+      
+      # SSL 인증서 문제 해결 (개발 환경용)
+      - PYTHONHTTPSVERIFY=0
+      - CURL_CA_BUNDLE=""
+      - REQUESTS_CA_BUNDLE=""
+      
+      # ChromaDB Configuration
+      - FIGURE_CHROMA_PERSIST_DIRECTORY=/app/data/chroma
+      - FIGURE_CHROMA_COLLECTION_NAME=figure_documents
+      
+      # JIRA Configuration (선택사항)
+      - FIGURE_JIRA_SERVER=${JIRA_SERVER:-}
+      - FIGURE_JIRA_EMAIL=${JIRA_EMAIL:-}
+      - FIGURE_JIRA_API_TOKEN=${JIRA_API_TOKEN:-}
+      
+    volumes:
+      - ./figure-backend/data:/app/data
+      - ./figure-backend/logs:/app/logs
+    depends_on:
+      - chroma
+    networks:
+      - figure-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ChromaDB Vector Database
+  chroma:
+    image: chromadb/chroma:latest
+    ports:
+      - "8000:8000"
+    environment:
+      - CHROMA_HOST=0.0.0.0
+      - CHROMA_PORT=8000
+      - ALLOW_RESET=TRUE
+    volumes:
+      - chroma_data:/chroma/chroma
+    networks:
+      - figure-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis (선택사항 - 캐싱/세션 관리용)
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - figure-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  chroma_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  figure-network:
+    driver: bridge 

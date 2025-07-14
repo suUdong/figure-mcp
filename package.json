@@ -1,0 +1,31 @@
+{
+  "name": "figure-mcp",
+  "version": "1.0.0",
+  "description": "MCP 기반 지능형 개발 표준 자동 산출물 생성 시스템",
+  "private": true,
+  "scripts": {
+    "dev": "cd figure-mcp-server && npm run dev",
+    "build": "cd figure-mcp-server && npm run build",
+    "start": "cd figure-mcp-server && npm start",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/figure-mcp.git"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "development-standards",
+    "automation",
+    "ai"
+  ],
+  "author": "Your Team",
+  "license": "MIT"
+} 

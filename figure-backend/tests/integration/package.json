@@ -1,0 +1,28 @@
+{
+  "name": "figure-mcp-integration-tests",
+  "version": "1.0.0",
+  "description": "Integration tests for Figure-MCP project",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "test:basic": "npm run build && node dist/basic-workflow.js",
+    "test:error": "npm run build && node dist/error-handling.js",
+    "test:performance": "npm run build && node dist/performance.js",
+    "test:all": "npm run test:basic && npm run test:error && npm run test:performance",
+    "test:scenario": "npm run build && node dist/scenario-runner.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "axios": "^1.6.0",
+    "dotenv": "^16.3.0",
+    "chalk": "^4.1.2",
+    "commander": "^11.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+} 

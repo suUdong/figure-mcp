@@ -1,0 +1,45 @@
+# Core Framework
+fastapi==0.115.13
+uvicorn[standard]==0.32.1
+pydantic==2.10.6
+pydantic-settings==2.8.0
+
+# Vector Database & Embeddings (Pydantic 2.x 호환 버전)
+chromadb==0.4.18
+openai==1.59.6
+
+# LangChain & RAG (호환성 있는 버전으로 고정)
+langchain==0.3.12
+langchain-community==0.3.11
+langchain-openai==0.2.11
+langchain-chroma==0.1.4
+langchain-text-splitters==0.3.3
+langchain-google-genai==2.0.8
+
+# External APIs
+jira==3.8.0
+requests==2.32.3
+
+# File Handling
+aiofiles==24.1.0
+
+# System Monitoring
+psutil==6.1.0
+
+# Database & Caching
+sqlalchemy==2.0.36
+alembic==1.14.0
+redis==5.2.1
+
+# Protobuf 호환성
+protobuf==4.25.5
+
+# Development & Testing
+pytest==8.3.4
+pytest-asyncio==0.25.0
+pytest-mock==3.14.0
+pytest-cov==6.0.0
+httpx==0.28.1
+faker==33.3.0
+black==25.1.0
+ruff==0.11.2 
