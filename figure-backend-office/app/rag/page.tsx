@@ -1,14 +1,15 @@
 'use client'
 
 import { useState } from 'react'
-import { Button } from '@/app/components/ui/button'
-import { Card } from '@/app/components/ui/card'
-import { Input } from '@/app/components/ui/input'
-import { Textarea } from '@/app/components/ui/textarea'
-import { Label } from '@/app/components/ui/label'
-import { Badge } from '@/app/components/ui/badge'
-import { useSites } from '@/app/hooks/use-sites'
-import { queryRAG } from '@/app/lib/api'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
+import { useSites } from '@/hooks/use-sites'
+import { queryRAG } from '@/lib/api'
+import MainLayout from '@/components/layout/main-layout'
 
 interface RAGResponse {
   success: boolean
@@ -36,7 +37,7 @@ export default function RAGTestPage() {
   const [similarityThreshold, setSimilarityThreshold] = useState(0.7)
   const [selectedSites, setSelectedSites] = useState<string[]>([])
   
-  const { data: sites } = useSites()
+  const { sites } = useSites()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -85,7 +86,8 @@ export default function RAGTestPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-6xl">
+    <MainLayout>
+      <div className="container mx-auto max-w-6xl">
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">RAG 테스트</h1>
         <p className="text-gray-600">문서 검색 기반 질의응답 시스템을 테스트해보세요</p>
@@ -142,7 +144,7 @@ export default function RAGTestPage() {
                     {sites.map((site) => (
                       <Badge
                         key={site.id}
-                        variant={selectedSites.includes(site.id) ? "default" : "outline"}
+                        variant={selectedSites.includes(site.id) ? "default" : "secondary"}
                         className="cursor-pointer"
                         onClick={() => handleSiteToggle(site.id)}
                       >
@@ -205,7 +207,7 @@ export default function RAGTestPage() {
                             <Badge className={getTypeColor(source.doc_type)}>
                               {source.doc_type}
                             </Badge>
-                            <Badge variant="outline">
+                            <Badge variant="secondary">
                               {Math.round(source.similarity * 100)}%
                             </Badge>
                           </div>
@@ -248,6 +250,7 @@ export default function RAGTestPage() {
           )}
         </div>
       </div>
-    </div>
+      </div>
+    </MainLayout>
   )
 } 

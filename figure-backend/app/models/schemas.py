@@ -12,6 +12,7 @@ class DocumentType(str, Enum):
     WEBSITE = "website"
     PDF = "pdf"
     TEXT = "text"
+    DOC = "doc"
     CONFLUENCE = "confluence"
     JIRA = "jira"
     

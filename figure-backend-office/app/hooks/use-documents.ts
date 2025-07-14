@@ -14,7 +14,7 @@ export function useDocuments() {
   const { data: documents, isLoading, error, refetch } = useQuery({
     queryKey: ['documents'],
     queryFn: async () => {
-      const response = await api.get('/documents/list')
+      const response = await api.get('/api/documents/list')
       return response.data.data.documents // APIResponse 구조에서 실제 문서 배열 추출
     }
   })
@@ -23,7 +23,7 @@ export function useDocuments() {
   const searchDocuments = async (query: string) => {
     setIsSearching(true)
     try {
-      const response = await api.get('/documents/search', {
+      const response = await api.get('/api/documents/search', {
         params: { query, max_results: 50 }
       })
       setSearchResults(response.data.data.results)
@@ -38,7 +38,7 @@ export function useDocuments() {
   // Delete document
   const deleteDocumentMutation = useMutation({
     mutationFn: async (documentId: string) => {
-      await api.delete(`/documents/${documentId}`)
+      await api.delete(`/api/documents/${documentId}`)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['documents'] })
@@ -49,7 +49,7 @@ export function useDocuments() {
   // Upload document
   const uploadDocumentMutation = useMutation({
     mutationFn: async (formData: FormData) => {
-      const response = await api.post('/documents/upload-file', formData, {
+      const response = await api.post('/api/documents/upload-file', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
@@ -79,7 +79,7 @@ export function useDocumentStats() {
   return useQuery({
     queryKey: ['document-stats'],
     queryFn: async () => {
-      const response = await api.get('/documents/stats')
+      const response = await api.get('/api/documents/stats')
       return response.data.data // APIResponse 구조에서 실제 데이터 추출
     }
   })

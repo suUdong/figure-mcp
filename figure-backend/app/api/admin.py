@@ -264,20 +264,36 @@ async def websocket_endpoint(websocket: WebSocket):
             
             # JSON 직렬화 가능한 형태로 변환
             def convert_job_to_dict(job):
-                job_dict = job.dict()
-                # 모든 datetime 필드를 문자열로 변환
-                for key, value in job_dict.items():
-                    if isinstance(value, datetime):
-                        job_dict[key] = value.isoformat()
-                    elif value is None:
-                        job_dict[key] = None
-                return job_dict
+                try:
+                    job_dict = job.dict()
+                    # 모든 datetime 필드를 문자열로 변환
+                    for key, value in job_dict.items():
+                        if isinstance(value, datetime):
+                            job_dict[key] = value.isoformat()
+                        elif value is None:
+                            job_dict[key] = None
+                    return job_dict
+                except Exception as e:
+                    logger.warning(f"작업 변환 오류: {e}")
+                    return {}
+                
+            # 메트릭스 데이터 안전하게 변환
+            def safe_convert_metrics(metrics):
+                try:
+                    metrics_dict = metrics.dict()
+                    for key, value in metrics_dict.items():
+                        if isinstance(value, datetime):
+                            metrics_dict[key] = value.isoformat()
+                        elif value is None:
+                            metrics_dict[key] = None
+                    return metrics_dict
+                except Exception as e:
+                    logger.warning(f"메트릭스 변환 오류: {e}")
+                    return {}
                 
             data = {
                 "type": "metrics_update",
-                "metrics": {
-                    **{k: v.isoformat() if isinstance(v, datetime) else v for k, v in metrics.dict().items()}
-                },
+                "metrics": safe_convert_metrics(metrics),
                 "active_jobs": [convert_job_to_dict(job) for job in active_jobs]
             }
             

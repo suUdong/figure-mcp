@@ -48,12 +48,6 @@ class VectorStoreService:
                 allow_reset=True
             )
             
-            # chroma_telemetry 옵션이 있으면 추가 (버전 호환성)
-            try:
-                chroma_settings.chroma_telemetry = False
-            except AttributeError:
-                pass  # 구버전에서는 이 옵션이 없을 수 있음
-            
             self._client = chromadb.PersistentClient(
                 path=persist_directory,
                 settings=chroma_settings

@@ -9,6 +9,7 @@ import { Search, FileText, Calendar, Download, Trash2, Eye, Filter, RefreshCw } 
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { Document } from '@/types/api'
+import MainLayout from '@/components/layout/main-layout'
 
 export default function DocumentsPage() {
   const [searchQuery, setSearchQuery] = useState('')
@@ -79,7 +80,8 @@ export default function DocumentsPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <MainLayout>
+      <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">문서 관리</h1>
@@ -314,6 +316,7 @@ export default function DocumentsPage() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </MainLayout>
   )
 } 

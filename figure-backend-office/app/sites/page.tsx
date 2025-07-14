@@ -9,6 +9,7 @@ import { Plus, Globe, Edit, Trash2, Power, PowerOff, ExternalLink, RefreshCw, Se
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { Site, CreateSiteRequest, UpdateSiteRequest } from '@/types/api'
+import MainLayout from '@/components/layout/main-layout'
 
 export default function SitesPage() {
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -78,7 +79,8 @@ export default function SitesPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <MainLayout>
+      <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">사이트 관리</h1>
@@ -244,7 +246,8 @@ export default function SitesPage() {
           isLoading={isUpdating}
         />
       )}
-    </div>
+      </div>
+    </MainLayout>
   )
 }
 

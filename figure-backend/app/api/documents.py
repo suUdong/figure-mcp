@@ -220,11 +220,44 @@ async def extract_file_content(file_path: str, file_ext: str) -> str:
             async with aiofiles.open(file_path, 'r', encoding='utf-8') as f:
                 return await f.read()
         elif file_ext == '.pdf':
-            # PDF 파일 - 추후 PyPDF2 등으로 구현
-            return f"PDF 파일 내용 추출 준비 중: {os.path.basename(file_path)}"
+            # PDF 파일 처리
+            try:
+                import PyPDF2
+                content = ""
+                with open(file_path, 'rb') as file:
+                    pdf_reader = PyPDF2.PdfReader(file)
+                    for page in pdf_reader.pages:
+                        content += page.extract_text() + "\n"
+                return content.strip() if content.strip() else f"PDF 파일에서 텍스트를 추출할 수 없습니다: {os.path.basename(file_path)}"
+            except ImportError:
+                logger.error("PyPDF2 라이브러리가 설치되지 않았습니다")
+                return f"PDF 처리 라이브러리가 설치되지 않았습니다: {os.path.basename(file_path)}"
+            except Exception as e:
+                logger.error(f"PDF 파일 처리 중 오류: {e}")
+                return f"PDF 파일 처리 중 오류가 발생했습니다: {str(e)}"
         elif file_ext in ['.doc', '.docx']:
-            # Word 파일 - 추후 python-docx 등으로 구현
-            return f"Word 파일 내용 추출 준비 중: {os.path.basename(file_path)}"
+            # Word 파일 처리
+            try:
+                from docx import Document
+                doc = Document(file_path)
+                content = ""
+                for paragraph in doc.paragraphs:
+                    content += paragraph.text + "\n"
+                
+                # 표 내용도 추출
+                for table in doc.tables:
+                    for row in table.rows:
+                        for cell in row.cells:
+                            content += cell.text + " "
+                        content += "\n"
+                
+                return content.strip() if content.strip() else f"Word 파일에서 텍스트를 추출할 수 없습니다: {os.path.basename(file_path)}"
+            except ImportError:
+                logger.error("python-docx 라이브러리가 설치되지 않았습니다")
+                return f"Word 처리 라이브러리가 설치되지 않았습니다: {os.path.basename(file_path)}"
+            except Exception as e:
+                logger.error(f"Word 파일 처리 중 오류: {e}")
+                return f"Word 파일 처리 중 오류가 발생했습니다: {str(e)}"
         else:
             return f"지원하지 않는 파일 형식: {file_ext}"
     except Exception as e:

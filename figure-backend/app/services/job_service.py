@@ -57,7 +57,7 @@ class JobService:
             elif job_update.status in [JobStatus.COMPLETED, JobStatus.FAILED, JobStatus.CANCELLED]:
                 job.completed_at = now
                 # 완료된 작업은 히스토리로 이동
-                self.job_history.append(job.dict())
+                self.job_history.append(self._serialize_job_for_history(job))
                 
         if job_update.progress is not None:
             job.progress = max(0.0, min(100.0, job_update.progress))
@@ -69,6 +69,8 @@ class JobService:
             job.error = job_update.error
             job.status = JobStatus.FAILED
             job.completed_at = now
+            # 실패한 작업은 히스토리로 이동
+            self.job_history.append(self._serialize_job_for_history(job))
             
         if job_update.metadata:
             job.metadata.update(job_update.metadata)
@@ -139,12 +141,18 @@ class JobService:
         failed_today = 0
         
         for job_data in self.job_history:
-            job_completed_at = datetime.fromisoformat(job_data.get('completed_at', ''))
-            if job_completed_at >= today_start:
-                if job_data.get('status') == JobStatus.COMPLETED:
-                    completed_today += 1
-                elif job_data.get('status') == JobStatus.FAILED:
-                    failed_today += 1
+            completed_at_str = job_data.get('completed_at')
+            if completed_at_str and completed_at_str.strip():
+                try:
+                    job_completed_at = datetime.fromisoformat(completed_at_str)
+                    if job_completed_at >= today_start:
+                        if job_data.get('status') == JobStatus.COMPLETED:
+                            completed_today += 1
+                        elif job_data.get('status') == JobStatus.FAILED:
+                            failed_today += 1
+                except ValueError:
+                    # 잘못된 datetime 형식은 무시
+                    continue
         
         # 시스템 리소스 사용량
         try:
@@ -226,6 +234,17 @@ class JobService:
             performance['success_rate'] = (successful_jobs / total_jobs) * 100
         
         return performance
+
+    def _serialize_job_for_history(self, job: Job) -> Dict[str, Any]:
+        """작업을 히스토리에 저장하기 위해 안전하게 직렬화"""
+        job_dict = job.dict()
+        # datetime 객체를 문자열로 변환
+        for key, value in job_dict.items():
+            if isinstance(value, datetime):
+                job_dict[key] = value.isoformat()
+            elif value is None:
+                job_dict[key] = None
+        return job_dict
 
 # 글로벌 JobService 인스턴스
 job_service = JobService() 
