@@ -118,6 +118,14 @@ temp/
 chroma_db/
 vector_store/
 
+# ChromaDB 데이터 파일
+**/chroma/
+**/chroma/**/*.bin
+**/chroma/**/header.bin
+**/chroma/**/length.bin
+**/chroma/**/data_level*.bin
+**/chroma/**/link_lists.bin
+
 # Uploaded files
 uploads/
 storage/

@@ -66,8 +66,14 @@ async def upload_file(
     - **metadata**: 추가 메타데이터 JSON (선택사항)
     """
     try:
+        if not file.filename:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="파일명이 제공되지 않았습니다."
+            )
+        
         # 파일 확장자 확인
-        file_ext = os.path.splitext(file.filename)[1].lower()
+        file_ext = os.path.splitext(file.filename)[1].lower() 
         if file_ext not in SUPPORTED_EXTENSIONS:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -153,6 +159,7 @@ async def upload_file(
                     "original_filename": file.filename,
                     **processed_metadata
                 },
+                source_url=file_path,
                 created_at=datetime.now()
             )
             
@@ -459,7 +466,7 @@ async def get_documents(
         collection_info = await service.get_collection_info()
         
         # 컬렉션이 비어있다면 빈 목록 반환
-        if collection_info.get("total_documents", 0) == 0:
+        if collection_info.get("total_chunks", 0) == 0:
             return APIResponse(
                 success=True,
                 message="문서 목록 조회 성공",
@@ -477,6 +484,10 @@ async def get_documents(
         
         # 모든 문서 ID와 메타데이터 가져오기
         results = collection.get()
+        
+        # 디버깅 로그 추가
+        logger.info(f"ChromaDB 조회 결과: {len(results.get('ids', []))}개의 ID")
+        logger.info(f"IDs 샘플: {results.get('ids', [])[:3]}")
         
         # 문서 정보 구성
         documents = []
@@ -559,6 +570,10 @@ async def list_documents(
         
         # 모든 문서 ID와 메타데이터 가져오기
         results = collection.get()
+
+                # 디버깅 로그 추가
+        logger.info(f"ChromaDB 조회 결과: {len(results.get('ids', []))}개의 ID")
+        logger.info(f"IDs 샘플: {results.get('ids', [])[:3]}")
         
         # 문서 정보 구성
         documents = []
