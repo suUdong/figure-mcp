@@ -35,6 +35,10 @@ async def lifespan(app: FastAPI):
     logger.info("🚀 Figure Backend 시작 중...")
     
     try:
+        # 데이터 디렉토리 생성
+        logger.info("📁 데이터 디렉토리 생성 중...")
+        settings.create_data_directory()
+        
         # 서비스 초기화
         logger.info("📊 벡터 스토어 서비스 초기화 중...")
         await vector_store_service.initialize()

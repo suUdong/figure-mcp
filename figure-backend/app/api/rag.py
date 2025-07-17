@@ -25,14 +25,14 @@ async def get_rag_service():
 
 @router.post(
     "/query", 
-    response_model=QueryResponse,
+    response_model=APIResponse,
     summary="RAG 질의응답",
     description="문서 검색 기반 질의응답을 수행합니다."
 )
 async def process_query(
     request: QueryRequest,
     service: object = Depends(get_rag_service)
-) -> QueryResponse:
+) -> APIResponse:
     """
     RAG 기반 질의응답 처리
     
@@ -89,13 +89,35 @@ async def process_query(
                 metadata={
                     "answer_length": len(response.answer),
                     "sources_count": len(response.sources),
-                    "processing_time": response.processing_time
+                    "processing_time": response.query_time
                 }
             ))
             
             # 응답에 job_id 추가
             response.job_id = job.id
-            return response
+            
+            # APIResponse 형태로 감싸서 반환
+            return APIResponse(
+                success=True,
+                message="RAG 질의 처리 완료",
+                data={
+                    "query": request.query,
+                    "answer": response.answer,
+                    "sources": [
+                        {
+                            "title": result.metadata.get("title", "Unknown"),
+                            "content": result.content,
+                            "doc_type": result.metadata.get("doc_type", "text"),
+                            "similarity": result.score,
+                            "source_url": result.metadata.get("source_url")
+                        }
+                        for result in response.results
+                    ],
+                    "processing_time": response.query_time,
+                    "job_id": response.job_id
+                },
+                errors=None
+            )
             
         except Exception as e:
             # 진행 상태 업데이트: 실패
@@ -132,7 +154,8 @@ async def get_rag_status(
         return APIResponse(
             success=True,
             message="RAG 서비스 상태 조회 성공",
-            data=status_info
+            data=status_info,
+            errors=None
         )
         
     except Exception as e:
@@ -168,8 +191,9 @@ async def health_check(
             message="RAG 서비스 정상 작동",
             data={
                 "service_healthy": True,
-                "test_query_processing_time": response.processing_time
-            }
+                "test_query_processing_time": response.query_time
+            },
+            errors=None
         )
         
     except Exception as e:
@@ -177,5 +201,6 @@ async def health_check(
         return APIResponse(
             success=False,
             message=f"RAG 서비스 오류: {str(e)}",
-            data={"service_healthy": False}
+            data={"service_healthy": False},
+            errors=[str(e)]
         ) 

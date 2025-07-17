@@ -12,7 +12,7 @@ from langchain_core.documents import Document
 from langchain_core.retrievers import BaseRetriever
 
 from app.config import settings
-from app.models.schemas import QueryRequest, QueryResponse
+from app.models.schemas import QueryRequest, QueryResponse, QueryResult
 from app.services.vector_store import vector_store_service
 
 logger = logging.getLogger(__name__)
@@ -22,17 +22,19 @@ class CustomRetriever(BaseRetriever):
     """VectorStoreService를 위한 커스텀 리트리버"""
     
     vector_store_service: Any = None
+    similarity_threshold: float = 0.200
     
-    def __init__(self, vector_store_service, **kwargs):
+    def __init__(self, vector_store_service, similarity_threshold=0.200, **kwargs):
         super().__init__(**kwargs)
         self.vector_store_service = vector_store_service
+        self.similarity_threshold = similarity_threshold
     
     async def _aget_relevant_documents(self, query: str, *, run_manager=None) -> List[Document]:
         """비동기 문서 검색"""
         results = await self.vector_store_service.search_similar(
             query=query,
             max_results=5,
-            similarity_threshold=0.7
+            similarity_threshold=self.similarity_threshold
         )
         
         documents = []
@@ -174,12 +176,36 @@ class RAGService:
                 return QueryResponse(
                     query=request.query,
                     answer="죄송합니다. 관련된 정보를 찾을 수 없습니다. 다른 키워드로 시도해보시거나 질문을 더 구체적으로 해주세요.",
-                    sources=[],
-                    processing_time=time.time() - start_time
+                    results=[],
+                    total_results=0,
+                    query_time=time.time() - start_time,
+                    sources=[]
                 )
             
-            # QA 체인 실행
-            result = await self._run_qa_chain(request.query)
+            # 검색 결과를 직접 사용하여 LLM 호출
+            context = "\n\n".join([result["content"] for result in search_results])
+            
+            # 프롬프트 생성
+            prompt = f"""당신은 Figure 디자인 도구에 대한 전문 어시스턴트입니다. 
+주어진 문맥 정보를 바탕으로 사용자의 질문에 정확하고 도움이 되는 답변을 제공해주세요.
+
+문맥 정보:
+{context}
+
+질문: {request.query}
+
+답변 가이드라인:
+1. 주어진 문맥 정보를 우선적으로 활용하세요
+2. 정확하고 구체적인 정보를 제공하세요
+3. 모르는 내용은 추측하지 말고 솔직히 말씀해주세요
+4. 가능하면 단계별 설명이나 예시를 포함해주세요
+5. 한국어로 자연스럽게 답변해주세요
+
+답변:"""
+            
+            # LLM 호출
+            llm_response = await self._llm.ainvoke(prompt)
+            answer = llm_response.content if hasattr(llm_response, 'content') else str(llm_response)
             
             # 소스 정보 구성
             sources = []
@@ -195,20 +221,34 @@ class RAGService:
             
             processing_time = time.time() - start_time
             
+            # QueryResult 객체 생성
+            query_results = []
+            for search_result in search_results:
+                query_result = QueryResult(
+                    content=search_result["content"][:200] + "..." if len(search_result["content"]) > 200 else search_result["content"],
+                    source=search_result["metadata"].get("source", "알 수 없음"),
+                    site_id=search_result["metadata"].get("site_id", "unknown"),
+                    score=search_result["similarity"],
+                    metadata=search_result["metadata"]
+                )
+                query_results.append(query_result)
+            
             return QueryResponse(
-                query=request.query,
-                answer=result["result"],
-                sources=sources,
-                processing_time=round(processing_time, 3)
+                answer=answer,
+                results=query_results,
+                total_results=len(query_results),
+                query_time=round(processing_time, 3),
+                sources=[r.source for r in query_results]
             )
             
         except Exception as e:
             logger.error(f"질의 처리 실패: {e}")
             return QueryResponse(
-                query=request.query,
                 answer=f"처리 중 오류가 발생했습니다: {str(e)}",
-                sources=[],
-                processing_time=time.time() - start_time
+                results=[],
+                total_results=0,
+                query_time=time.time() - start_time,
+                sources=[]
             )
     
     async def _run_qa_chain(self, query: str) -> Dict[str, Any]:

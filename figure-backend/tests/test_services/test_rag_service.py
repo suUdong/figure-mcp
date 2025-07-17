@@ -117,7 +117,7 @@ class TestRAGService:
         assert hasattr(result, 'query')
         assert hasattr(result, 'answer')
         assert hasattr(result, 'sources')
-        assert hasattr(result, 'processing_time')
+        assert hasattr(result, 'query_time')
         
         assert result.query == request.query
         assert len(result.sources) > 0

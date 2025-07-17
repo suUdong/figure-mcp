@@ -85,8 +85,13 @@ services:
       
       # SSL 인증서 문제 해결 (개발 환경용)
       - PYTHONHTTPSVERIFY=0
-      - CURL_CA_BUNDLE=""
-      - REQUESTS_CA_BUNDLE=""
+      
+      # 임시 디렉토리 및 캐시 설정
+      - TMPDIR=/tmp
+      - HOME=/app
+      - XDG_CACHE_HOME=/app/.cache
+      - TRANSFORMERS_CACHE=/app/.cache/transformers
+      - HF_HOME=/app/.cache/huggingface
       
       # ChromaDB Configuration
       - FIGURE_CHROMA_PERSIST_DIRECTORY=/app/data/chroma

@@ -34,7 +34,7 @@ export default function RAGTestPage() {
   const [response, setResponse] = useState<RAGResponse | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [maxResults, setMaxResults] = useState(5)
-  const [similarityThreshold, setSimilarityThreshold] = useState(0.7)
+  const [similarityThreshold, setSimilarityThreshold] = useState(0.200)
   const [selectedSites, setSelectedSites] = useState<string[]>([])
   
   const { sites } = useSites()
@@ -129,9 +129,10 @@ export default function RAGTestPage() {
                     type="number"
                     min="0"
                     max="1"
-                    step="0.1"
+                    step="0.001"
                     value={similarityThreshold}
                     onChange={(e) => setSimilarityThreshold(Number(e.target.value))}
+                    placeholder="0.200"
                   />
                 </div>
               </div>

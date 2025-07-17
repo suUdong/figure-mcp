@@ -39,7 +39,7 @@ class VectorStoreService:
             os.environ["ANONYMIZED_TELEMETRY"] = "False"
             os.environ["CHROMA_TELEMETRY"] = "False"
             
-            persist_directory = "/app/data/chroma"
+            persist_directory = settings.chroma_persist_directory
             os.makedirs(persist_directory, exist_ok=True)
             
             # telemetry 비활성화 설정
@@ -74,7 +74,7 @@ class VectorStoreService:
                     google_api_key=settings.gemini_api_key
                 )
             
-            # 컬렉션 생성 또는 가져오기
+            # 컬렉션 생성 또는 가져오기 
             self._collection = self._client.get_or_create_collection(
                 name=settings.chroma_collection_name,
                 metadata={"created_at": datetime.now().isoformat()}
@@ -132,31 +132,22 @@ class VectorStoreService:
                     
                 chunk_metadatas.append(chunk_metadata)
                     
-            # 임베딩 생성
+            # 임베딩 생성 (Gemini 사용)
             try:
                 embeddings = await asyncio.get_event_loop().run_in_executor(
                     None, self._embeddings.embed_documents, chunks
                 )
             except Exception as e:
                 logger.error(f"임베딩 생성 실패: {e}")
-                # 임베딩 생성 실패 시 None으로 ChromaDB가 자동 생성하도록 함
-                embeddings = None
+                raise Exception(f"임베딩 생성 실패: {e}")
             
-            # ChromaDB에 추가
-            if embeddings:
-                self._collection.add(
-                    documents=chunks,
-                    metadatas=chunk_metadatas,
-                    ids=chunk_ids,
-                    embeddings=embeddings
-                )
-            else:
-                # 임베딩이 없으면 ChromaDB가 자동 생성
-                self._collection.add(
-                    documents=chunks,
-                    metadatas=chunk_metadatas,
-                    ids=chunk_ids
-                )
+            # ChromaDB에 추가 (항상 Gemini 임베딩 사용)
+            self._collection.add(
+                documents=chunks,
+                metadatas=chunk_metadatas,
+                ids=chunk_ids,
+                embeddings=embeddings
+            )
             
             logger.info(f"문서 추가 완료: {doc_id} ({len(chunks)}개 청크)")
             return doc_id
@@ -182,11 +173,17 @@ class VectorStoreService:
             if site_ids:
                 where_filter["site_id"] = {"$in": site_ids}
             
-            # 검색 실행
+            # 쿼리를 Gemini로 임베딩 생성 (문서와 동일한 방식 사용)
+            query_embedding = await asyncio.get_event_loop().run_in_executor(
+                None, self._embeddings.embed_documents, [query]
+            )
+            query_embedding = query_embedding[0]  # 첫 번째 결과 사용
+            
+            # 검색 실행 (Gemini 임베딩 사용)
             query_filter = {"where": where_filter} if where_filter else {}
             
             results = self._collection.query(
-                query_texts=[query],
+                query_embeddings=[query_embedding],
                 n_results=max_results,
                 include=["documents", "metadatas", "distances"],
                 **query_filter
@@ -202,6 +199,9 @@ class VectorStoreService:
                 )):
                     # 유사도 계산 (거리를 유사도로 변환)
                     similarity = 1 - distance
+                    
+                    # 모든 검색 결과의 유사도를 로그로 출력
+                    logger.info(f"검색 결과 {i+1}: 유사도={similarity:.3f}, 임계값={similarity_threshold}")
                     
                     if similarity >= similarity_threshold:
                         search_results.append({

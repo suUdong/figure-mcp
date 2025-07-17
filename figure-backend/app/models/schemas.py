@@ -59,7 +59,7 @@ class QueryRequest(BaseModel):
     query: str = Field(..., min_length=1, max_length=1000, description="질의 문장")
     site_ids: List[str] = Field(default_factory=list, description="검색할 사이트 ID 목록")
     max_results: int = Field(default=5, ge=1, le=20, description="최대 결과 수")
-    similarity_threshold: float = Field(default=0.7, ge=0.0, le=1.0, description="유사도 임계값")
+    similarity_threshold: float = Field(default=0.200, ge=0.0, le=1.0, description="유사도 임계값")
     use_reranking: bool = Field(default=True, description="재순위화 사용 여부")
     
 

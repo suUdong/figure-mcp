@@ -97,18 +97,18 @@ export async function queryRAG(data: {
   similarity_threshold?: number;
   site_ids?: string[];
 }) {
-  const response = await api.post('/rag/query', data);
+  const response = await api.post('/api/rag/query', data);
   return response.data;
 }
 
 // RAG 서비스 상태 조회
 export async function getRAGStatus() {
-  const response = await api.get('/rag/status');
+  const response = await api.get('/api/rag/status');
   return response.data;
 }
 
 // RAG 서비스 헬스체크
 export async function checkRAGHealth() {
-  const response = await api.post('/rag/health');
+  const response = await api.post('/api/rag/health');
   return response.data;
 } 
