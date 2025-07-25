@@ -15,10 +15,11 @@ from fastapi.staticfiles import StaticFiles
 import uvicorn
 
 from app.config import settings
-from app.models.schemas import APIResponse
-from app.api import rag, documents, sites, admin
-from app.services.vector_store import vector_store_service
-from app.services.rag_service import rag_service
+from app.domain.entities.schemas import APIResponse
+from app.interfaces.api import rag, documents, sites, admin, usage, auth
+from app.application.services.vector_store import vector_store_service
+from app.application.services.rag_service import rag_service
+from app.application.services.auth_service import auth_service
 
 # 로깅 설정
 logging.basicConfig(
@@ -45,6 +46,9 @@ async def lifespan(app: FastAPI):
         
         logger.info("🤖 RAG 서비스 초기화 중...")
         await rag_service.initialize()
+        
+        logger.info("🔐 기본 관리자 계정 확인/생성 중...")
+        auth_service.create_default_admin()
         
         logger.info("✅ 모든 서비스 초기화 완료")
         
@@ -112,10 +116,12 @@ async def custom_http_exception_handler(request: Request, exc: HTTPException):
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 # 라우터 포함
+app.include_router(auth.router, prefix="/api")
 app.include_router(rag.router, prefix="/api")
 app.include_router(documents.router, prefix="/api")
 app.include_router(sites.router, prefix="/api")
 app.include_router(admin.router)
+app.include_router(usage.router, prefix="/api")
 
 
 # 기본 엔드포인트

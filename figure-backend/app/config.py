@@ -45,6 +45,10 @@ class Settings(BaseSettings):
     openai_model: str = Field(default="gpt-4o-mini", description="OpenAI 모델")
     openai_embedding_model: str = Field(default="text-embedding-3-small", description="OpenAI 임베딩 모델")
     
+    # Voyage AI API (Optional)
+    voyage_api_key: Optional[str] = Field(default=None, description="Voyage AI API 키")
+    voyage_embedding_model: str = Field(default="voyage-3-large", description="Voyage AI 임베딩 모델")
+    
     # Storage Configuration
     storage_provider: str = Field(default="local", description="저장소 프로바이더")
     local_storage_path: str = Field(default="./storage", description="로컬 저장소 경로")
@@ -87,6 +91,8 @@ class Settings(BaseSettings):
                 object.__setattr__(self, 'groq_api_key', 'test-key')
             if not self.openai_api_key:
                 object.__setattr__(self, 'openai_api_key', 'test-key')
+            if not self.voyage_api_key:
+                object.__setattr__(self, 'voyage_api_key', 'test-key')
             return self
         
         # 프로덕션 환경에서는 사용하는 프로바이더의 API 키만 검증
@@ -105,6 +111,11 @@ class Settings(BaseSettings):
             if not self.openai_api_key:
                 print("⚠️  Warning: FIGURE_OPENAI_API_KEY not set, using default")
                 object.__setattr__(self, 'openai_api_key', 'default-key')
+        
+        if self.embedding_provider == "voyage":
+            if not self.voyage_api_key:
+                print("⚠️  Warning: FIGURE_VOYAGE_API_KEY not set, using default")
+                object.__setattr__(self, 'voyage_api_key', 'default-key')
         
         return self
     
