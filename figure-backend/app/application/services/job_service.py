@@ -17,6 +17,8 @@ class JobService:
         self.jobs: Dict[str, Job] = {}
         self.job_history: deque = deque(maxlen=1000)  # 최근 1000개 작업 이력
         self.start_time = time.time()
+        self._last_cpu_check = 0
+        self._cached_cpu_usage = 0.0
         
     def create_job(self, job_create: JobCreate) -> Job:
         """새 작업 생성"""
@@ -154,9 +156,15 @@ class JobService:
                     # 잘못된 datetime 형식은 무시
                     continue
         
-        # 시스템 리소스 사용량
+        # 시스템 리소스 사용량 (CPU는 캐시 사용)
         try:
-            cpu_usage = psutil.cpu_percent(interval=1)
+            current_time = time.time()
+            # CPU 사용량은 5초마다만 새로 측정 (캐시 사용)
+            if current_time - self._last_cpu_check > 5:
+                self._cached_cpu_usage = psutil.cpu_percent(interval=0.1)  # 0.1초로 단축
+                self._last_cpu_check = current_time
+            cpu_usage = self._cached_cpu_usage
+            
             memory = psutil.virtual_memory()
             disk = psutil.disk_usage('/')
             
@@ -166,6 +174,26 @@ class JobService:
             logger.warning(f"시스템 메트릭 수집 실패: {e}")
             cpu_usage = memory_usage = disk_usage = 0.0
         
+        # 실제 문서 및 사이트 수 가져오기
+        total_documents = 0
+        total_sites = 0
+        
+        try:
+            # vector_store_service에서 문서 수 가져오기
+            from app.application.services.vector_store import vector_store_service
+            if hasattr(vector_store_service, 'collection') and vector_store_service.collection:
+                collection_info = vector_store_service.collection.count()
+                total_documents = collection_info if isinstance(collection_info, int) else 0
+        except Exception as e:
+            logger.warning(f"문서 수 조회 실패: {e}")
+            
+        try:
+            # sites API에서 사이트 수 가져오기 (모의 데이터)
+            # TODO: 실제 데이터베이스 연결 후 수정
+            total_sites = 3  # 임시 데이터
+        except Exception as e:
+            logger.warning(f"사이트 수 조회 실패: {e}")
+
         uptime = time.time() - self.start_time
         
         return SystemMetrics(
@@ -177,8 +205,8 @@ class JobService:
             pending_jobs=pending_jobs,
             completed_jobs_today=completed_today,
             failed_jobs_today=failed_today,
-            total_documents=0,  # TODO: 실제 문서 수로 업데이트
-            total_sites=0,      # TODO: 실제 사이트 수로 업데이트
+            total_documents=total_documents,
+            total_sites=total_sites,
             vector_db_size=None,
             uptime_seconds=uptime
         )

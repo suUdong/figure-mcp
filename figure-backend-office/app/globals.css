@@ -14,7 +14,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 222.2 47.4% 11.2%;
+    --primary: 199 89% 48%; /* figure-500와 동일 */
     --primary-foreground: 210 40% 98%;
 
     --secondary: 210 40% 96%;
@@ -31,49 +31,77 @@
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --ring: 199 89% 48%; /* figure-500와 동일 */
 
     --radius: 0.5rem;
 
-    /* === Figure 브랜드 색상 시스템 === */
+    /* === 완전한 Figure 브랜드 색상 시스템 === */
     --figure-50: 214 100% 97%; /* #f0f9ff */
     --figure-100: 214 95% 93%; /* #e0f2fe */
     --figure-200: 213 97% 87%; /* #bae6fd */
     --figure-300: 212 96% 78%; /* #7dd3fc */
     --figure-400: 213 94% 68%; /* #38bdf8 */
-    --figure-500: 199 89% 48%; /* #0ea5e9 */
+    --figure-500: 199 89% 48%; /* #0ea5e9 - Primary Brand */
     --figure-600: 200 98% 39%; /* #0284c7 */
     --figure-700: 201 96% 32%; /* #0369a1 */
     --figure-800: 201 90% 27%; /* #075985 */
     --figure-900: 202 80% 24%; /* #0c4a6e */
     --figure-950: 202 80% 16%; /* #082f49 */
 
-    /* === 상태 색상 시스템 === */
-    /* Success (Green) */
+    /* === 완전한 상태 색상 시스템 === */
+    /* Success (Green) - 완전한 스케일 */
     --success-50: 138 76% 97%; /* #f0fdf4 */
-    --success-500: 142 76% 36%; /* #16a34a */
+    --success-100: 141 84% 93%; /* #dcfce7 */
+    --success-200: 141 79% 85%; /* #bbf7d0 */
+    --success-300: 142 77% 73%; /* #86efac */
+    --success-400: 142 69% 58%; /* #4ade80 */
+    --success-500: 142 76% 36%; /* #22c55e */
     --success-600: 142 72% 29%; /* #16a34a */
-    --success-foreground: 0 0% 100%;
+    --success-700: 142 64% 24%; /* #15803d */
+    --success-800: 143 61% 20%; /* #166534 */
+    --success-900: 144 61% 16%; /* #14532d */
+    --success-950: 145 80% 9%; /* #052e16 */
 
-    /* Warning (Yellow) */
-    --warning-50: 54 92% 95%; /* #fefce8 */
-    --warning-500: 45 93% 47%; /* #eab308 */
-    --warning-600: 45 93% 37%; /* #ca8a04 */
-    --warning-foreground: 0 0% 100%;
+    /* Warning (Amber) - 완전한 스케일 */
+    --warning-50: 55 92% 95%; /* #fffbeb */
+    --warning-100: 55 91% 91%; /* #fef3c7 */
+    --warning-200: 53 98% 77%; /* #fed7aa */
+    --warning-300: 50 98% 64%; /* #fdba74 */
+    --warning-400: 48 96% 53%; /* #fb923c */
+    --warning-500: 45 93% 47%; /* #f59e0b */
+    --warning-600: 43 96% 56%; /* #d97706 */
+    --warning-700: 41 96% 40%; /* #b45309 */
+    --warning-800: 39 90% 30%; /* #92400e */
+    --warning-900: 35 91% 25%; /* #78350f */
+    --warning-950: 32 81% 14%; /* #451a03 */
 
-    /* Error (Red) */
+    /* Error (Red) - 완전한 스케일 */
     --error-50: 0 86% 97%; /* #fef2f2 */
+    --error-100: 0 93% 94%; /* #fee2e2 */
+    --error-200: 0 96% 89%; /* #fecaca */
+    --error-300: 0 94% 82%; /* #fca5a5 */
+    --error-400: 0 91% 71%; /* #f87171 */
     --error-500: 0 84% 60%; /* #ef4444 */
     --error-600: 0 72% 51%; /* #dc2626 */
-    --error-foreground: 0 0% 100%;
+    --error-700: 0 74% 42%; /* #b91c1c */
+    --error-800: 0 70% 35%; /* #991b1b */
+    --error-900: 0 63% 31%; /* #7f1d1d */
+    --error-950: 0 75% 15%; /* #450a0a */
 
-    /* Info (Blue) */
-    --info-50: 214 100% 97%; /* #f0f9ff */
+    /* Info (Blue) - 완전한 스케일 */
+    --info-50: 214 100% 97%; /* #eff6ff */
+    --info-100: 214 95% 93%; /* #dbeafe */
+    --info-200: 213 97% 87%; /* #bfdbfe */
+    --info-300: 212 96% 78%; /* #93c5fd */
+    --info-400: 213 94% 68%; /* #60a5fa */
     --info-500: 217 91% 60%; /* #3b82f6 */
     --info-600: 221 83% 53%; /* #2563eb */
-    --info-foreground: 0 0% 100%;
+    --info-700: 224 76% 48%; /* #1d4ed8 */
+    --info-800: 226 71% 40%; /* #1e40af */
+    --info-900: 224 64% 33%; /* #1e3a8a */
+    --info-950: 226 70% 21%; /* #172554 */
 
-    /* === 확장 그레이 스케일 === */
+    /* === 완전한 그레이 스케일 (Neutral) === */
     --gray-25: 210 20% 98%; /* #fcfcfd */
     --gray-50: 210 20% 96%; /* #f9fafb */
     --gray-100: 220 14% 93%; /* #f3f4f6 */
@@ -87,7 +115,35 @@
     --gray-900: 222 47% 11%; /* #111827 */
     --gray-950: 229 84% 5%; /* #030712 */
 
-    /* === Border Radius 시스템 === */
+    /* === 추가 브랜드 색상 (보조 팔레트) === */
+    /* Purple - 보조 브랜드 색상 */
+    --purple-50: 270 100% 98%; /* #faf5ff */
+    --purple-100: 269 100% 95%; /* #f3e8ff */
+    --purple-200: 269 100% 92%; /* #e9d5ff */
+    --purple-300: 268 100% 86%; /* #d8b4fe */
+    --purple-400: 270 95% 75%; /* #c084fc */
+    --purple-500: 271 91% 65%; /* #a855f7 */
+    --purple-600: 271 81% 56%; /* #9333ea */
+    --purple-700: 272 72% 47%; /* #7c3aed */
+    --purple-800: 273 67% 39%; /* #6b21a8 */
+    --purple-900: 274 66% 32%; /* #581c87 */
+    --purple-950: 276 100% 20%; /* #3b0764 */
+
+    /* Teal - 보조 브랜드 색상 */
+    --teal-50: 166 76% 97%; /* #f0fdfa */
+    --teal-100: 167 85% 89%; /* #ccfbf1 */
+    --teal-200: 168 84% 78%; /* #99f6e4 */
+    --teal-300: 171 77% 64%; /* #5eead4 */
+    --teal-400: 172 66% 50%; /* #2dd4bf */
+    --teal-500: 173 80% 40%; /* #14b8a6 */
+    --teal-600: 175 84% 32%; /* #0d9488 */
+    --teal-700: 175 77% 26%; /* #0f766e */
+    --teal-800: 176 69% 22%; /* #115e59 */
+    --teal-900: 176 61% 19%; /* #134e4a */
+    --teal-950: 179 84% 10%; /* #042f2e */
+
+    /* === 고급 Border Radius 시스템 === */
+    --radius-none: 0px;
     --radius-xs: 0.125rem; /* 2px */
     --radius-sm: 0.25rem; /* 4px */
     --radius-md: 0.375rem; /* 6px */
@@ -95,26 +151,132 @@
     --radius-xl: 0.75rem; /* 12px */
     --radius-2xl: 1rem; /* 16px */
     --radius-3xl: 1.5rem; /* 24px */
+    --radius-4xl: 2rem; /* 32px */
+    --radius-full: 9999px;
 
-    /* === 그림자 시스템 === */
+    /* === 고급 그림자 시스템 === */
     --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
     --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1),
-      0 2px 4px -2px rgb(0 0 0 / 0.1);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1),
-      0 4px 6px -4px rgb(0 0 0 / 0.1);
-    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1),
-      0 8px 10px -6px rgb(0 0 0 / 0.1);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
     --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
     --shadow-3xl: 0 35px 60px -12px rgb(0 0 0 / 0.3);
+    --shadow-inner: inset 0 2px 4px 0 rgb(0 0 0 / 0.05);
+    --shadow-none: 0 0 #0000;
 
-    /* === 애니메이션 시스템 === */
+    /* === 컬러 그림자 시스템 === */
+    --shadow-figure: 0 10px 15px -3px rgb(14 165 233 / 0.4), 0 4px 6px -4px rgb(14 165 233 / 0.1);
+    --shadow-figure-lg: 0 20px 25px -5px rgb(14 165 233 / 0.4), 0 8px 10px -6px rgb(14 165 233 / 0.1);
+    --shadow-success: 0 10px 15px -3px rgb(34 197 94 / 0.4), 0 4px 6px -4px rgb(34 197 94 / 0.1);
+    --shadow-warning: 0 10px 15px -3px rgb(245 158 11 / 0.4), 0 4px 6px -4px rgb(245 158 11 / 0.1);
+    --shadow-error: 0 10px 15px -3px rgb(239 68 68 / 0.4), 0 4px 6px -4px rgb(239 68 68 / 0.1);
+
+    /* === 고급 애니메이션 시스템 === */
+    --duration-instant: 0ms;
     --duration-fast: 150ms;
     --duration-normal: 250ms;
     --duration-slow: 350ms;
+    --duration-slower: 500ms;
+    --duration-slowest: 750ms;
 
-    --easing-ease-in-out-back: cubic-bezier(0.68, -0.55, 0.265, 1.55);
-    --easing-ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    /* 고급 이징 함수 */
+    --easing-linear: linear;
+    --easing-ease: ease;
+    --easing-ease-in: cubic-bezier(0.4, 0, 1, 1);
+    --easing-ease-out: cubic-bezier(0, 0, 0.2, 1);
+    --easing-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+    --easing-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    --easing-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    --easing-smooth: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
+    /* === 타이포그래피 시스템 === */
+    /* Font Weights */
+    --font-weight-thin: 100;
+    --font-weight-extralight: 200;
+    --font-weight-light: 300;
+    --font-weight-normal: 400;
+    --font-weight-medium: 500;
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
+    --font-weight-extrabold: 800;
+    --font-weight-black: 900;
+
+    /* Line Heights */
+    --leading-none: 1;
+    --leading-tight: 1.25;
+    --leading-snug: 1.375;
+    --leading-normal: 1.5;
+    --leading-relaxed: 1.625;
+    --leading-loose: 2;
+
+    /* Letter Spacing */
+    --tracking-tighter: -0.05em;
+    --tracking-tight: -0.025em;
+    --tracking-normal: 0em;
+    --tracking-wide: 0.025em;
+    --tracking-wider: 0.05em;
+    --tracking-widest: 0.1em;
+
+    /* === 스페이싱 시스템 (8px 베이스) === */
+    --space-px: 1px;
+    --space-0: 0px;
+    --space-0-5: 0.125rem; /* 2px */
+    --space-1: 0.25rem; /* 4px */
+    --space-1-5: 0.375rem; /* 6px */
+    --space-2: 0.5rem; /* 8px - Base unit */
+    --space-2-5: 0.625rem; /* 10px */
+    --space-3: 0.75rem; /* 12px */
+    --space-3-5: 0.875rem; /* 14px */
+    --space-4: 1rem; /* 16px */
+    --space-5: 1.25rem; /* 20px */
+    --space-6: 1.5rem; /* 24px */
+    --space-7: 1.75rem; /* 28px */
+    --space-8: 2rem; /* 32px */
+    --space-9: 2.25rem; /* 36px */
+    --space-10: 2.5rem; /* 40px */
+    --space-11: 2.75rem; /* 44px */
+    --space-12: 3rem; /* 48px */
+    --space-14: 3.5rem; /* 56px */
+    --space-16: 4rem; /* 64px */
+    --space-20: 5rem; /* 80px */
+    --space-24: 6rem; /* 96px */
+    --space-28: 7rem; /* 112px */
+    --space-32: 8rem; /* 128px */
+    --space-36: 9rem; /* 144px */
+    --space-40: 10rem; /* 160px */
+    --space-44: 11rem; /* 176px */
+    --space-48: 12rem; /* 192px */
+    --space-52: 13rem; /* 208px */
+    --space-56: 14rem; /* 224px */
+    --space-60: 15rem; /* 240px */
+    --space-64: 16rem; /* 256px */
+    --space-72: 18rem; /* 288px */
+    --space-80: 20rem; /* 320px */
+    --space-96: 24rem; /* 384px */
+
+    /* === 접근성 색상 === */
+    --focus-ring: 0 0 0 2px hsl(var(--figure-500) / 0.5);
+    --focus-ring-error: 0 0 0 2px hsl(var(--error-500) / 0.5);
+    --focus-ring-success: 0 0 0 2px hsl(var(--success-500) / 0.5);
+    --focus-ring-warning: 0 0 0 2px hsl(var(--warning-500) / 0.5);
+
+    /* === Z-Index 스케일 === */
+    --z-auto: auto;
+    --z-0: 0;
+    --z-10: 10;
+    --z-20: 20;
+    --z-30: 30;
+    --z-40: 40;
+    --z-50: 50;
+    --z-dropdown: 1000;
+    --z-sticky: 1020;
+    --z-fixed: 1030;
+    --z-modal-backdrop: 1040;
+    --z-modal: 1050;
+    --z-popover: 1060;
+    --z-tooltip: 1070;
+    --z-toast: 1080;
   }
 
   .dark {
@@ -128,7 +290,7 @@
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 210 40% 98%;
+    --primary: 199 89% 48%; /* figure-500 유지 */
     --primary-foreground: 222.2 47.4% 11.2%;
 
     --secondary: 217.2 32.6% 17.5%;
@@ -145,37 +307,99 @@
 
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --ring: 199 89% 48%; /* figure-500 유지 */
 
-    /* === 다크모드 Figure 브랜드 색상 === */
-    --figure-50: 202 80% 16%; /* 다크모드에서는 어두운 색상부터 시작 */
-    --figure-100: 202 80% 20%;
-    --figure-200: 201 90% 24%;
-    --figure-300: 201 96% 28%;
-    --figure-400: 200 98% 35%;
+    /* === 다크모드 완전한 색상 시스템 === */
+    /* Figure 브랜드 (다크모드 최적화) */
+    --figure-50: 202 80% 16%;
+    --figure-100: 202 80% 18%;
+    --figure-200: 201 90% 20%;
+    --figure-300: 201 96% 24%;
+    --figure-400: 200 98% 32%;
     --figure-500: 199 89% 48%; /* 동일한 primary */
-    --figure-600: 213 94% 60%;
+    --figure-600: 200 98% 39%;
     --figure-700: 212 96% 70%;
     --figure-800: 213 97% 80%;
     --figure-900: 214 95% 88%;
     --figure-950: 214 100% 94%;
 
-    /* === 다크모드 상태 색상 === */
-    --success-50: 142 72% 20%;
-    --success-500: 142 76% 40%;
-    --success-600: 142 76% 50%;
+    /* Success (다크모드 최적화) */
+    --success-50: 145 80% 9%;
+    --success-100: 144 61% 12%;
+    --success-200: 143 61% 16%;
+    --success-300: 142 64% 20%;
+    --success-400: 142 72% 25%;
+    --success-500: 142 76% 36%;
+    --success-600: 142 72% 45%;
+    --success-700: 142 77% 58%;
+    --success-800: 141 79% 70%;
+    --success-900: 141 84% 80%;
+    --success-950: 138 76% 90%;
 
-    --warning-50: 45 93% 20%;
-    --warning-500: 45 93% 50%;
-    --warning-600: 45 93% 60%;
+    /* Warning (다크모드 최적화) */
+    --warning-50: 32 81% 14%;
+    --warning-100: 35 91% 18%;
+    --warning-200: 39 90% 22%;
+    --warning-300: 41 96% 28%;
+    --warning-400: 43 96% 35%;
+    --warning-500: 45 93% 47%;
+    --warning-600: 48 96% 53%;
+    --warning-700: 50 98% 64%;
+    --warning-800: 53 98% 77%;
+    --warning-900: 55 91% 85%;
+    --warning-950: 55 92% 90%;
 
-    --error-50: 0 72% 20%;
+    /* Error (다크모드 최적화) */
+    --error-50: 0 75% 15%;
+    --error-100: 0 63% 20%;
+    --error-200: 0 70% 25%;
+    --error-300: 0 74% 32%;
+    --error-400: 0 72% 42%;
     --error-500: 0 84% 60%;
-    --error-600: 0 84% 70%;
+    --error-600: 0 91% 71%;
+    --error-700: 0 94% 82%;
+    --error-800: 0 96% 89%;
+    --error-900: 0 93% 94%;
+    --error-950: 0 86% 97%;
 
-    --info-50: 221 83% 20%;
+    /* Info (다크모드 최적화) */
+    --info-50: 226 70% 21%;
+    --info-100: 224 64% 25%;
+    --info-200: 226 71% 30%;
+    --info-300: 224 76% 40%;
+    --info-400: 221 83% 48%;
     --info-500: 217 91% 60%;
-    --info-600: 214 100% 70%;
+    --info-600: 213 94% 68%;
+    --info-700: 212 96% 78%;
+    --info-800: 213 97% 87%;
+    --info-900: 214 95% 93%;
+    --info-950: 214 100% 97%;
+
+    /* Purple (다크모드 최적화) */
+    --purple-50: 276 100% 20%;
+    --purple-100: 274 66% 24%;
+    --purple-200: 273 67% 32%;
+    --purple-300: 272 72% 39%;
+    --purple-400: 271 81% 47%;
+    --purple-500: 271 91% 65%;
+    --purple-600: 270 95% 75%;
+    --purple-700: 268 100% 86%;
+    --purple-800: 269 100% 92%;
+    --purple-900: 269 100% 95%;
+    --purple-950: 270 100% 98%;
+
+    /* Teal (다크모드 최적화) */
+    --teal-50: 179 84% 10%;
+    --teal-100: 176 61% 14%;
+    --teal-200: 176 69% 19%;
+    --teal-300: 175 77% 22%;
+    --teal-400: 175 84% 26%;
+    --teal-500: 173 80% 40%;
+    --teal-600: 172 66% 50%;
+    --teal-700: 171 77% 64%;
+    --teal-800: 168 84% 78%;
+    --teal-900: 167 85% 89%;
+    --teal-950: 166 76% 97%;
 
     /* === 다크모드 그레이 스케일 === */
     --gray-25: 229 84% 5%;
@@ -194,14 +418,25 @@
     /* === 다크모드 그림자 === */
     --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.3);
     --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.4);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4),
-      0 2px 4px -2px rgb(0 0 0 / 0.4);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4),
-      0 4px 6px -4px rgb(0 0 0 / 0.4);
-    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.4),
-      0 8px 10px -6px rgb(0 0 0 / 0.4);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.4);
     --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.6);
     --shadow-3xl: 0 35px 60px -12px rgb(0 0 0 / 0.7);
+    --shadow-inner: inset 0 2px 4px 0 rgb(0 0 0 / 0.1);
+
+    /* === 다크모드 컬러 그림자 === */
+    --shadow-figure: 0 10px 15px -3px rgb(14 165 233 / 0.6), 0 4px 6px -4px rgb(14 165 233 / 0.2);
+    --shadow-figure-lg: 0 20px 25px -5px rgb(14 165 233 / 0.6), 0 8px 10px -6px rgb(14 165 233 / 0.2);
+    --shadow-success: 0 10px 15px -3px rgb(34 197 94 / 0.6), 0 4px 6px -4px rgb(34 197 94 / 0.2);
+    --shadow-warning: 0 10px 15px -3px rgb(245 158 11 / 0.6), 0 4px 6px -4px rgb(245 158 11 / 0.2);
+    --shadow-error: 0 10px 15px -3px rgb(239 68 68 / 0.6), 0 4px 6px -4px rgb(239 68 68 / 0.2);
+
+    /* === 다크모드 접근성 포커스 === */
+    --focus-ring: 0 0 0 2px hsl(var(--figure-500) / 0.7);
+    --focus-ring-error: 0 0 0 2px hsl(var(--error-500) / 0.7);
+    --focus-ring-success: 0 0 0 2px hsl(var(--success-500) / 0.7);
+    --focus-ring-warning: 0 0 0 2px hsl(var(--warning-500) / 0.7);
   }
 }
 
@@ -209,14 +444,216 @@
   * {
     @apply border-border;
   }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* === 향상된 스크롤바 스타일링 === */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--gray-300)) hsl(var(--gray-100));
+  }
+
+  *::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: hsl(var(--gray-100));
+    border-radius: var(--radius-md);
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: hsl(var(--gray-300));
+    border-radius: var(--radius-md);
+    border: 1px solid hsl(var(--gray-200));
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--gray-400));
+  }
+
+  .dark *::-webkit-scrollbar-track {
+    background: hsl(var(--gray-800));
+  }
+
+  .dark *::-webkit-scrollbar-thumb {
+    background: hsl(var(--gray-600));
+    border: 1px solid hsl(var(--gray-700));
+  }
+
+  .dark *::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--gray-500));
+  }
+
+  /* === 텍스트 선택 스타일링 === */
+  ::selection {
+    background-color: hsl(var(--figure-200));
+    color: hsl(var(--figure-900));
+  }
+
+  .dark ::selection {
+    background-color: hsl(var(--figure-800));
+    color: hsl(var(--figure-100));
+  }
+
+  /* === 포커스 링 기본 스타일 === */
+  :focus-visible {
+    outline: 2px solid hsl(var(--figure-500));
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+
+  /* === 접근성 향상 === */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* === 고대비 모드 지원 === */
+  @media (prefers-contrast: high) {
+    :root {
+      --border: 0 0% 20%;
+      --ring: var(--figure-700);
+    }
+
+    .dark {
+      --border: 0 0% 80%;
+      --ring: var(--figure-300);
+    }
   }
 }
 
-/* === 유틸리티 클래스 === */
+/* === 고급 컴포넌트 클래스 === */
+@layer components {
+  /* === 버튼 변형 === */
+  .btn-figure {
+    @apply bg-gradient-to-r from-figure-500 to-figure-600 text-white font-medium px-4 py-2 rounded-lg shadow-sm hover:shadow-figure transition-all duration-normal hover:-translate-y-0.5 focus-visible:ring-figure;
+  }
+
+  .btn-figure-outline {
+    @apply border border-figure-300 text-figure-700 font-medium px-4 py-2 rounded-lg hover:bg-figure-50 hover:border-figure-400 transition-all duration-normal focus-visible:ring-figure;
+  }
+
+  .btn-figure-ghost {
+    @apply text-figure-700 font-medium px-4 py-2 rounded-lg hover:bg-figure-50 transition-all duration-normal focus-visible:ring-figure;
+  }
+
+  /* === 카드 변형 === */
+  .card-elevated {
+    @apply bg-white rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-normal hover:-translate-y-1;
+  }
+
+  .card-interactive {
+    @apply bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md hover:border-gray-300 transition-all duration-normal cursor-pointer;
+  }
+
+  .card-feature {
+    @apply bg-gradient-to-br from-figure-50 to-white rounded-xl border border-figure-200 shadow-sm hover:shadow-figure transition-all duration-normal;
+  }
+
+  /* === 입력 필드 스타일 === */
+  .input-field {
+    @apply w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-figure-500 focus:border-figure-500 transition-all duration-normal;
+  }
+
+  .input-field-error {
+    @apply border-error-300 focus:ring-error-500 focus:border-error-500;
+  }
+
+  .input-field-success {
+    @apply border-success-300 focus:ring-success-500 focus:border-success-500;
+  }
+
+  /* === 배지 스타일 === */
+  .badge-figure {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-figure-100 text-figure-800 border border-figure-200;
+  }
+
+  .badge-success {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success-100 text-success-800 border border-success-200;
+  }
+
+  .badge-warning {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-warning-100 text-warning-800 border border-warning-200;
+  }
+
+  .badge-error {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-error-100 text-error-800 border border-error-200;
+  }
+
+  .badge-info {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-info-100 text-info-800 border border-info-200;
+  }
+
+  /* === 네비게이션 아이템 === */
+  .nav-item {
+    @apply flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-normal;
+  }
+
+  .nav-item-active {
+    @apply bg-figure-100 text-figure-900 border-l-4 border-figure-500;
+  }
+
+  .nav-item-inactive {
+    @apply text-gray-600 hover:bg-gray-50 hover:text-gray-900;
+  }
+
+  /* === 로딩 스피너 === */
+  .spinner {
+    @apply animate-spin rounded-full border-2 border-gray-200 border-t-figure-500;
+  }
+
+  .spinner-sm {
+    @apply w-4 h-4;
+  }
+
+  .spinner-md {
+    @apply w-6 h-6;
+  }
+
+  .spinner-lg {
+    @apply w-8 h-8;
+  }
+
+  /* === 드롭존 스타일 === */
+  .dropzone {
+    @apply border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-figure-400 hover:bg-figure-50 transition-all duration-normal;
+  }
+
+  .dropzone-active {
+    @apply border-figure-500 bg-figure-100;
+  }
+
+  /* === 상태 표시 === */
+  .status-online {
+    @apply w-2 h-2 rounded-full bg-success-500 animate-pulse;
+  }
+
+  .status-offline {
+    @apply w-2 h-2 rounded-full bg-gray-400;
+  }
+
+  .status-warning {
+    @apply w-2 h-2 rounded-full bg-warning-500 animate-pulse;
+  }
+
+  .status-error {
+    @apply w-2 h-2 rounded-full bg-error-500 animate-pulse;
+  }
+}
+
+/* === 고급 유틸리티 클래스 === */
 @layer utilities {
-  /* 스크롤바 스타일링 */
+  /* === 스크롤바 유틸리티 === */
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -225,35 +662,193 @@
     display: none;
   }
 
-  /* 텍스트 선택 비활성화 */
-  .select-none {
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
+  .scrollbar-thin {
+    scrollbar-width: thin;
   }
 
-  /* 포커스 링 스타일 */
-  .focus-ring {
-    @apply focus:outline-none focus:ring-2 focus:ring-figure-500 focus:ring-offset-2;
+  /* === 텍스트 유틸리티 === */
+  .text-balance {
+    text-wrap: balance;
   }
 
-  /* 애니메이션 유틸리티 */
-  .animate-enter {
-    animation-duration: var(--duration-normal);
-    animation-timing-function: var(--easing-ease-spring);
+  .text-pretty {
+    text-wrap: pretty;
   }
 
-  /* 그라디언트 유틸리티 */
+  /* === 그라디언트 유틸리티 === */
   .bg-gradient-figure {
-    background: linear-gradient(
-      135deg,
-      hsl(var(--figure-500)),
-      hsl(var(--figure-600))
-    );
+    background: linear-gradient(135deg, hsl(var(--figure-500)), hsl(var(--figure-600)));
   }
 
-  .bg-gradient-card {
-    background: linear-gradient(135deg, hsl(var(--card)), hsl(var(--gray-25)));
+  .bg-gradient-figure-radial {
+    background: radial-gradient(circle at center, hsl(var(--figure-400)), hsl(var(--figure-600)));
+  }
+
+  .bg-gradient-success {
+    background: linear-gradient(135deg, hsl(var(--success-500)), hsl(var(--success-600)));
+  }
+
+  .bg-gradient-warning {
+    background: linear-gradient(135deg, hsl(var(--warning-500)), hsl(var(--warning-600)));
+  }
+
+  .bg-gradient-error {
+    background: linear-gradient(135deg, hsl(var(--error-500)), hsl(var(--error-600)));
+  }
+
+  .bg-gradient-info {
+    background: linear-gradient(135deg, hsl(var(--info-500)), hsl(var(--info-600)));
+  }
+
+  /* === 애니메이션 유틸리티 === */
+  .animate-fade-in {
+    animation: fadeIn var(--duration-normal) var(--easing-ease-out);
+  }
+
+  .animate-slide-up {
+    animation: slideUp var(--duration-normal) var(--easing-ease-out);
+  }
+
+  .animate-slide-down {
+    animation: slideDown var(--duration-normal) var(--easing-ease-out);
+  }
+
+  .animate-scale-in {
+    animation: scaleIn var(--duration-normal) var(--easing-bounce);
+  }
+
+  .animate-bounce-in {
+    animation: bounceIn var(--duration-slow) var(--easing-bounce);
+  }
+
+  /* === 포커스 유틸리티 === */
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-figure-500 focus:ring-offset-2 transition-all duration-fast;
+  }
+
+  .focus-ring-error {
+    @apply focus:outline-none focus:ring-2 focus:ring-error-500 focus:ring-offset-2 transition-all duration-fast;
+  }
+
+  .focus-ring-success {
+    @apply focus:outline-none focus:ring-2 focus:ring-success-500 focus:ring-offset-2 transition-all duration-fast;
+  }
+
+  .focus-ring-warning {
+    @apply focus:outline-none focus:ring-2 focus:ring-warning-500 focus:ring-offset-2 transition-all duration-fast;
+  }
+
+  .focus-ring-inset {
+    @apply focus:outline-none focus:ring-2 focus:ring-inset focus:ring-figure-500 transition-all duration-fast;
+  }
+
+  /* === 상태 유틸리티 === */
+  .disabled-state {
+    @apply opacity-50 cursor-not-allowed pointer-events-none;
+  }
+
+  .loading-state {
+    @apply opacity-75 cursor-wait;
+  }
+
+  /* === 호버 효과 === */
+  .hover-lift {
+    @apply hover:-translate-y-1 hover:shadow-lg transition-all duration-normal;
+  }
+
+  .hover-grow {
+    @apply hover:scale-105 transition-transform duration-normal;
+  }
+
+  .hover-glow {
+    @apply hover:shadow-figure-lg transition-all duration-normal;
+  }
+
+  /* === 고급 레이아웃 === */
+  .content-grid {
+    display: grid;
+    grid-template-columns: 1fr min(65ch, 100%) 1fr;
+  }
+
+  .content-grid > * {
+    grid-column: 2;
+  }
+
+  .full-width {
+    grid-column: 1 / -1;
+  }
+
+  /* === 접근성 유틸리티 === */
+  .sr-only-focusable:not(:focus):not(:focus-within) {
+    @apply sr-only;
+  }
+
+  .skip-link {
+    @apply sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-figure-600 focus:text-white focus:rounded-lg focus:shadow-lg;
+  }
+
+  /* === 프린트 유틸리티 === */
+  @media print {
+    .print-hidden {
+      display: none !important;
+    }
+
+    .print-visible {
+      display: block !important;
+    }
+  }
+}
+
+/* === 키프레임 정의 === */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { 
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from { 
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from { 
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to { 
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes bounceIn {
+  0% { 
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  50% { 
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  100% { 
+    opacity: 1;
+    transform: scale(1);
   }
 }

@@ -3,47 +3,38 @@
 import { useState } from 'react';
 import Header from './header';
 import Sidebar from './sidebar';
-import { cn } from '@/lib/utils';
 
 interface MainLayoutProps {
   children: React.ReactNode;
 }
 
 export default function MainLayout({ children }: MainLayoutProps) {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
-  const handleSidebarToggle = () => {
-    setIsSidebarOpen(!isSidebarOpen);
-  };
-
-  const handleSidebarClose = () => {
-    setIsSidebarOpen(false);
-  };
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="relative min-h-screen bg-background">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <Header 
-        onMenuClick={handleSidebarToggle}
-        isSidebarOpen={isSidebarOpen}
-      />
-
-      {/* Sidebar */}
-      <Sidebar 
-        isOpen={isSidebarOpen}
-        onClose={handleSidebarClose}
-      />
-
-      {/* Main Content */}
-      <main className={cn(
-        "transition-all duration-200 ease-in-out",
-        "pt-16", // Header height
-        "md:ml-64" // Sidebar width on desktop
-      )}>
-        <div className="container mx-auto p-4 md:p-6 lg:p-8">
-          {children}
-        </div>
-      </main>
+      <Header onMenuToggle={() => setSidebarOpen(!sidebarOpen)} />
+      
+      {/* Layout Container */}
+      <div className="flex">
+        {/* Sidebar */}
+        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        
+        {/* Main Content */}
+        <main
+          id="main-content"
+          className="flex-1 md:ml-64 mt-16 min-h-[calc(100vh-4rem)]"
+          role="main"
+          aria-label="메인 콘텐츠"
+        >
+          <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+            <div className="space-y-8">
+              {children}
+            </div>
+          </div>
+        </main>
+      </div>
     </div>
   );
 } 
