@@ -3,6 +3,7 @@ RAG API Endpoints
 FastAPI를 활용한 RAG 기능 API
 """
 import logging
+import time
 from typing import Dict, Any
 from fastapi import APIRouter, HTTPException, Depends, status
 from fastapi.responses import JSONResponse
@@ -68,7 +69,25 @@ async def process_query(
                 message="AI 응답 생성 중..."
             ))
             
-            response = await service.process_query(request)
+            # RAG 질의 처리 (QueryRequest를 적절한 파라미터로 변환)
+            start_time = time.time()
+            
+            result = await service.query(
+                question=request.query,
+                include_sources=True
+            )
+            
+            query_time = time.time() - start_time
+            
+            # QueryResponse 객체 생성
+            response = QueryResponse(
+                answer=result.get("answer", ""),
+                sources=result.get("sources", []),
+                query=request.query,
+                query_time=query_time,
+                max_results=request.max_results,
+                similarity_threshold=request.similarity_threshold
+            )
             
             if response.answer.startswith("처리 중 오류가 발생했습니다"):
                 job_service.update_job(job.id, JobUpdate(
@@ -184,7 +203,21 @@ async def health_check(
             similarity_threshold=0.5
         )
         
-        response = await service.process_query(test_request)
+        # 간단한 테스트 질의
+        result = await service.query(
+            question=test_request.query,
+            include_sources=False
+        )
+        
+        # QueryResponse 형태로 변환
+        response = QueryResponse(
+            answer=result.get("answer", ""),
+            sources=result.get("sources", []),
+            query=test_request.query,
+            query_time=0.0,
+            max_results=test_request.max_results,
+            similarity_threshold=test_request.similarity_threshold
+        )
         
         return APIResponse(
             success=True,

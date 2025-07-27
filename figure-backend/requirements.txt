@@ -22,6 +22,7 @@ langchain-google-genai==2.0.8
 jira==3.8.0
 requests==2.32.3
 voyageai==0.3.4
+anthropic==0.40.0
 
 # Authentication
 PyJWT==2.10.1

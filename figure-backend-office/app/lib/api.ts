@@ -1,20 +1,27 @@
 import axios from "axios";
 import { AuthStorage } from "./auth-storage";
 
-// API 기본 설정 - 클라이언트에서는 localhost로 직접 접근
+// API 기본 설정 - Docker 환경에 맞춰 수정
+const getBaseURL = () => {
+  // 브라우저 환경에서는 프록시를 통해 접근
+  if (typeof window !== 'undefined') {
+    return window.location.origin;
+  }
+  // 서버 사이드에서는 Docker 내부 네트워크 사용
+  return process.env.BACKEND_API_URL || "http://figure-backend:8001";
+};
+
 export const api = axios.create({
-  baseURL: "http://localhost:8001",
-  timeout: 10000,
+  baseURL: getBaseURL(),
+  timeout: 5000, // 5초로 단축
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-// 요청 인터셉터 - 인증 토큰 자동 추가
+// 요청 인터셉터 - 인증 토큰 자동 추가 (로그 제거)
 api.interceptors.request.use(
   (config) => {
-    console.log(`[API Request] ${config.method?.toUpperCase()} ${config.url}`);
-
     // 인증 토큰 추가 (로그인/리프레시 요청 제외)
     const token = AuthStorage.getAccessToken();
     if (
@@ -32,17 +39,16 @@ api.interceptors.request.use(
   }
 );
 
-// 응답 인터셉터 - 토큰 만료 시 자동 갱신 또는 로그아웃
+// 응답 인터셉터 - 토큰 만료 시 자동 갱신 또는 로그아웃 (로그 최소화)
 api.interceptors.response.use(
   (response) => {
-    console.log(`[API Response] ${response.status} ${response.config.url}`);
     return response;
   },
   async (error) => {
-    console.error(
-      `[API Error] ${error.response?.status} ${error.config?.url}`,
-      error.response?.data
-    );
+    // 개발 환경에서만 에러 로그 출력
+    if (process.env.NODE_ENV === 'development') {
+      console.error(`[API Error] ${error.response?.status} ${error.config?.url}`);
+    }
 
     const originalRequest = error.config;
 
@@ -54,9 +60,9 @@ api.interceptors.response.use(
       const refreshToken = AuthStorage.getRefreshToken();
       if (refreshToken && !originalRequest.url?.includes("/auth/")) {
         try {
-          // 토큰 갱신 요청
+          // 토큰 갱신 요청 - 직접 백엔드 URL 사용
           const refreshResponse = await axios.post(
-            "http://localhost:8001/api/auth/refresh",
+            `${getBaseURL()}/api/auth/refresh`,
             {
               refresh_token: refreshToken,
             }
@@ -77,7 +83,9 @@ api.interceptors.response.use(
             return api(originalRequest);
           }
         } catch (refreshError) {
+          if (process.env.NODE_ENV === 'development') {
           console.error("토큰 갱신 실패:", refreshError);
+          }
           AuthStorage.clearTokens();
 
           // 로그인 페이지로 리다이렉트 (브라우저 환경에서만)
@@ -104,7 +112,7 @@ api.interceptors.response.use(
 
 // API 함수들
 export const adminApi = {
-  // 대시보드 관련
+  // 대시보드 관련 - /admin prefix (not /api/admin)
   getStats: () => api.get("/admin/stats"),
   getMetrics: () => api.get("/admin/metrics"),
 
@@ -167,9 +175,26 @@ export const usageApi = {
 };
 
 export const systemApi = {
-  // 시스템 상태
-  getHealth: () => api.get("/health"),
-  getStatus: () => api.get("/status"),
+  // 시스템 상태 - root level endpoints (프록시 우회하고 직접 백엔드 호출)
+  getHealth: () => {
+    // 브라우저에서는 직접 백엔드로 요청
+    if (typeof window !== 'undefined') {
+      return axios.get("http://localhost:8001/health", {
+        timeout: 5000,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    return api.get("/health");
+  },
+  getStatus: () => {
+    if (typeof window !== 'undefined') {
+      return axios.get("http://localhost:8001/status", {
+        timeout: 5000,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    return api.get("/status");
+  },
   getRoot: () => api.get("/"),
 };
 

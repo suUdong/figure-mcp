@@ -96,10 +96,16 @@ export interface Document {
 
 export interface Site {
   id: string
-  name: string
-  url: string
+  name: string              // 회사/조직 이름
+  company: string           // 회사명
+  department?: string       // 부서명
+  business_type?: string    // 업종/사업 분야
+  contact_person?: string   // 담당자
+  contact_email?: string    // 담당자 이메일
+  contact_phone?: string    // 연락처
+  url?: string             // 회사 웹사이트 URL (선택사항)
   enabled: boolean
-  description?: string
+  description?: string      // 회사/업무 설명
   crawl_frequency?: number
   max_depth?: number
   include_patterns?: string[]
@@ -112,9 +118,15 @@ export interface Site {
 }
 
 export interface CreateSiteRequest {
-  name: string
-  url: string
-  description?: string
+  name: string              // 회사/조직 이름
+  company: string           // 회사명
+  department?: string       // 부서명
+  business_type?: string    // 업종/사업 분야
+  contact_person?: string   // 담당자
+  contact_email?: string    // 담당자 이메일
+  contact_phone?: string    // 연락처
+  url?: string             // 회사 웹사이트 URL (선택사항)
+  description?: string      // 회사/업무 설명
   crawl_frequency?: number
   max_depth?: number
   include_patterns?: string[]
@@ -122,9 +134,15 @@ export interface CreateSiteRequest {
 }
 
 export interface UpdateSiteRequest {
-  name?: string
-  url?: string
-  description?: string
+  name?: string             // 회사/조직 이름
+  company?: string          // 회사명
+  department?: string       // 부서명
+  business_type?: string    // 업종/사업 분야
+  contact_person?: string   // 담당자
+  contact_email?: string    // 담당자 이메일
+  contact_phone?: string    // 연락처
+  url?: string             // 회사 웹사이트 URL (선택사항)
+  description?: string      // 회사/업무 설명
   crawl_frequency?: number
   max_depth?: number
   include_patterns?: string[]

@@ -507,11 +507,18 @@ async def get_documents(
             
             document_info = {
                 "id": original_doc_id,
-                "title": metadata.get("title", "제목 없음"),
-                "doc_type": metadata.get("doc_type", "unknown"),
+                "filename": metadata.get("title", "제목 없음"),  # 프론트엔드가 기대하는 필드명
+                "type": metadata.get("doc_type", "unknown"),     # 프론트엔드가 기대하는 필드명
                 "created_at": metadata.get("created_at"),
+                "updated_at": metadata.get("created_at"),        # 현재는 생성일과 동일
                 "site_id": metadata.get("site_id"),
                 "source_url": metadata.get("source_url"),
+                "vector_count": metadata.get("total_chunks", 1), # 프론트엔드가 기대하는 필드명
+                "size": metadata.get("file_size", 0),           # 파일 크기 (없으면 0)
+                "status": "processed",                           # 일단 모든 문서는 processed 상태로
+                # 백워드 호환성을 위해 기존 필드도 유지
+                "title": metadata.get("title", "제목 없음"),
+                "doc_type": metadata.get("doc_type", "unknown"),
                 "total_chunks": metadata.get("total_chunks", 1)
             }
             
@@ -593,11 +600,18 @@ async def list_documents(
             
             document_info = {
                 "id": original_doc_id,
-                "title": metadata.get("title", "제목 없음"),
-                "doc_type": metadata.get("doc_type", "unknown"),
+                "filename": metadata.get("title", "제목 없음"),  # 프론트엔드가 기대하는 필드명
+                "type": metadata.get("doc_type", "unknown"),     # 프론트엔드가 기대하는 필드명
                 "created_at": metadata.get("created_at"),
+                "updated_at": metadata.get("created_at"),        # 현재는 생성일과 동일
                 "site_id": metadata.get("site_id"),
                 "source_url": metadata.get("source_url"),
+                "vector_count": metadata.get("total_chunks", 1), # 프론트엔드가 기대하는 필드명
+                "size": metadata.get("file_size", 0),           # 파일 크기 (없으면 0)
+                "status": "processed",                           # 일단 모든 문서는 processed 상태로
+                # 백워드 호환성을 위해 기존 필드도 유지
+                "title": metadata.get("title", "제목 없음"),
+                "doc_type": metadata.get("doc_type", "unknown"),
                 "total_chunks": metadata.get("total_chunks", 1)
             }
             

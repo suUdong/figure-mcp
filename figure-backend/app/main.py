@@ -166,8 +166,8 @@ async def health_check():
                 "debug": settings.debug,
                     "llm_provider": settings.llm_provider,
                     "embedding_provider": settings.embedding_provider,
-                    "current_llm_model": settings.gemini_model if settings.llm_provider == "gemini" else settings.openai_model,
-                    "current_embedding_model": settings.gemini_embedding_model if settings.embedding_provider == "gemini" else settings.openai_embedding_model
+                    "current_llm_model": getattr(settings, f'{settings.llm_provider}_model', 'Unknown'),
+                    "current_embedding_model": getattr(settings, f'{settings.embedding_provider}_embedding_model', 'Unknown')
             }
         }
         )
@@ -205,7 +205,7 @@ async def get_system_status():
             "configuration": {
                     "llm_provider": settings.llm_provider,
                     "embedding_provider": settings.embedding_provider,
-                    "current_llm_model": settings.gemini_model if settings.llm_provider == "gemini" else settings.openai_model,
+                    "current_llm_model": getattr(settings, f'{settings.llm_provider}_model', 'Unknown'),
                     "current_embedding_model": settings.gemini_embedding_model if settings.embedding_provider == "gemini" else settings.openai_embedding_model,
                     "chroma_collection": settings.chroma_collection_name
             }

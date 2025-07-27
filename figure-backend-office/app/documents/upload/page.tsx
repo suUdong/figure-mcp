@@ -1,17 +1,18 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/layout/main-layout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Upload, X, FileText, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { ArrowLeft, Upload, X, FileText, CheckCircle, AlertCircle, Loader2, Building2, ChevronDown } from 'lucide-react';
 import { api } from '@/lib/api';
+import { useSites } from '@/hooks/use-sites';
 
 interface FileUploadState {
   id: string;
@@ -27,10 +28,17 @@ export default function DocumentUploadPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<FileUploadState[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
-  const [siteId, setSiteId] = useState('');
+  const [selectedSiteId, setSelectedSiteId] = useState('')
+  const [showSiteDropdown, setShowSiteDropdown] = useState(false)
   const [description, setDescription] = useState('');
   const [tags, setTags] = useState('');
   const [uploading, setUploading] = useState(false);
+
+  // 등록된 회사 목록 가져오기
+  const { sites, isLoading: sitesLoading } = useSites()
+
+  // 선택된 사이트 정보
+  const selectedSite = sites?.find(site => site.id === selectedSiteId)
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -90,8 +98,8 @@ export default function DocumentUploadPage() {
     const formData = new FormData();
     formData.append('file', fileState.file);
     
-    if (siteId) {
-      formData.append('site_id', siteId);
+    if (selectedSiteId) {
+      formData.append('site_id', selectedSiteId);
     }
     
     const metadata = {
@@ -155,6 +163,12 @@ export default function DocumentUploadPage() {
   };
 
   const uploadAllFiles = async () => {
+    // 회사 선택 여부 체크
+    if (!selectedSiteId) {
+      alert('문서를 등록할 회사를 선택해주세요.');
+      return;
+    }
+
     setUploading(true);
     const pendingFiles = files.filter(f => f.status === 'idle');
     
@@ -164,6 +178,22 @@ export default function DocumentUploadPage() {
     
     setUploading(false);
   };
+
+  // 드롭다운 외부 클릭 시 닫기
+  const handleClickOutside = useCallback((e: MouseEvent) => {
+    const target = e.target as Element;
+    if (!target.closest('.site-dropdown')) {
+      setShowSiteDropdown(false);
+    }
+  }, []);
+
+  // 컴포넌트 마운트 시 이벤트 리스너 등록
+  React.useEffect(() => {
+    if (showSiteDropdown) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [showSiteDropdown, handleClickOutside]);
 
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
@@ -230,18 +260,98 @@ export default function DocumentUploadPage() {
         <Card>
           <CardHeader>
             <CardTitle>업로드 설정</CardTitle>
+            <CardDescription>문서를 등록할 회사를 선택하고 추가 정보를 입력하세요</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* 회사 선택 드롭다운 */}
+              <div className="space-y-2">
+                <Label htmlFor="siteSelect">등록할 회사 선택 *</Label>
+                <div className="relative site-dropdown">
+                  <button
+                    type="button"
+                    onClick={() => setShowSiteDropdown(!showSiteDropdown)}
+                    className="w-full flex items-center justify-between px-3 py-2 border border-gray-300 rounded-lg bg-white text-left focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    disabled={sitesLoading}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <Building2 className="h-4 w-4 text-gray-400" />
+                      <span className={selectedSite ? "text-gray-900" : "text-gray-500"}>
+                        {selectedSite ? (
+                          <span>
+                            {selectedSite.name}
+                            {selectedSite.department && (
+                              <span className="text-gray-500"> ({selectedSite.department})</span>
+                            )}
+                          </span>
+                        ) : sitesLoading ? "로딩 중..." : "회사를 선택하세요"}
+                      </span>
+                    </div>
+                    <ChevronDown className="h-4 w-4 text-gray-400" />
+                  </button>
+                  
+                  {/* 드롭다운 메뉴 */}
+                  {showSiteDropdown && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                      {sitesLoading ? (
+                        <div className="px-3 py-2 text-gray-500">로딩 중...</div>
+                      ) : sites && sites.length > 0 ? (
+                        sites.map((site) => (
+                          <button
+                            key={site.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedSiteId(site.id)
+                              setShowSiteDropdown(false)
+                            }}
+                            className="w-full px-3 py-2 text-left hover:bg-gray-50 focus:bg-gray-50 focus:outline-none"
+                          >
+                            <div className="flex items-center justify-between">
               <div>
-                <Label htmlFor="siteId">사이트 ID (선택사항)</Label>
-                <Input
-                  id="siteId"
-                  value={siteId}
-                  onChange={(e) => setSiteId(e.target.value)}
-                  placeholder="예: site-12345"
-                />
+                                <div className="font-medium text-gray-900">{site.name}</div>
+                                <div className="text-sm text-gray-500">
+                                  {site.company}
+                                  {site.department && ` • ${site.department}`}
+                                  {site.business_type && ` • ${site.business_type}`}
+                                </div>
+                              </div>
+                              {site.id === selectedSiteId && (
+                                <CheckCircle className="h-4 w-4 text-blue-500" />
+                              )}
+                            </div>
+                          </button>
+                        ))
+                      ) : (
+                        <div className="px-3 py-2 text-gray-500">
+                          등록된 회사가 없습니다. 
+                          <button
+                            onClick={() => router.push('/sites')}
+                            className="ml-1 text-blue-600 hover:text-blue-800 underline"
+                          >
+                            회사를 먼저 등록하세요
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                
+                {/* 선택된 회사 정보 표시 */}
+                {selectedSite && (
+                  <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="text-sm">
+                      <div className="font-medium text-blue-900">{selectedSite.company}</div>
+                      {selectedSite.business_type && (
+                        <div className="text-blue-700">{selectedSite.business_type}</div>
+                      )}
+                      {selectedSite.contact_person && (
+                        <div className="text-blue-600">담당자: {selectedSite.contact_person}</div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
+              
               <div>
                 <Label htmlFor="tags">태그 (쉼표로 구분)</Label>
                 <Input

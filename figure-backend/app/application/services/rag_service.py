@@ -1,74 +1,24 @@
 """
-RAG (Retrieval-Augmented Generation) Service
+RAG Service
 헥사고날 아키텍처 기반 멀티 프로바이더 LLM을 지원하는 질의응답 서비스
 """
-import time
 import logging
-from typing import List, Dict, Any, Optional
-
-from langchain.chains import RetrievalQA
-from langchain.prompts import PromptTemplate
-from langchain_core.documents import Document
-from langchain_core.retrievers import BaseRetriever
+from typing import List, Optional, Dict, Any
 
 from app.config import settings
-from app.domain.entities.schemas import QueryRequest, QueryResponse, QueryResult
 from app.application.services.vector_store import vector_store_service
-
-logger = logging.getLogger(__name__)
-
-
-class CustomRetriever(BaseRetriever):
-    """VectorStoreService를 위한 커스텀 리트리버"""
-    
-    vector_store_service: Any = None
-    similarity_threshold: float = 0.200
-    
-    def __init__(self, vector_store_service, similarity_threshold=0.200, **kwargs):
-        super().__init__(**kwargs)
-        self.vector_store_service = vector_store_service
-        self.similarity_threshold = similarity_threshold
-    
-    async def _aget_relevant_documents(self, query: str, *, run_manager=None) -> List[Document]:
-        """비동기 문서 검색"""
-        results = await self.vector_store_service.search_similar(
-            query=query,
-            max_results=5,
-            similarity_threshold=self.similarity_threshold
-        )
-        
-        documents = []
-        for result in results:
-            doc = Document(
-                page_content=result["content"],
-                metadata=result["metadata"]
-            )
-            documents.append(doc)
-        
-        return documents
-    
-    def _get_relevant_documents(self, query: str, *, run_manager=None) -> List[Document]:
-        """동기 문서 검색 (비동기 버전을 호출)"""
-        import asyncio
-        try:
-            # 현재 실행 중인 이벤트 루프가 있는지 확인
-            loop = asyncio.get_running_loop()
-            # 새 태스크로 비동기 함수 실행
-            task = loop.create_task(self._aget_relevant_documents(query, run_manager=run_manager))
-            return asyncio.create_task(task).result() if hasattr(asyncio, 'create_task') else []
-        except RuntimeError:
-            # 이벤트 루프가 없는 경우 새로 생성
-            return asyncio.run(self._aget_relevant_documents(query, run_manager=run_manager))
+from app.application.services.usage.tracker import usage_tracker
+from app.infrastructure.adapters.llm.factory import llm_factory
+from app.domain.repositories.llm_repository import LLMRepository
+from app.utils.logger import rag_logger as logger
 
 
 class RAGService:
-    """RAG 기반 질의응답 서비스"""
+    """RAG (Retrieval-Augmented Generation) 서비스"""
     
     def __init__(self):
-        """서비스 초기화"""
-        self._llm = None
-        self._retriever = None
-        self._qa_chain = None
+        """RAG 서비스 초기화"""
+        self._llm: Optional[LLMRepository] = None
         self._initialized = False
     
     async def initialize(self) -> None:
@@ -77,43 +27,12 @@ class RAGService:
             return
             
         try:
-            # LLM 프로바이더에 따라 초기화
-            if settings.llm_provider == "gemini":
-                from langchain_google_genai import ChatGoogleGenerativeAI
-                self._llm = ChatGoogleGenerativeAI(
-                    model=settings.gemini_model,
-                    google_api_key=settings.gemini_api_key,
-                    temperature=0.1,
-                    max_output_tokens=1000
-                )
-            elif settings.llm_provider == "openai":
-                from langchain_openai import ChatOpenAI
-                self._llm = ChatOpenAI(
-                    model=settings.openai_model,
-                    openai_api_key=settings.openai_api_key,
-                    temperature=0.1,
-                    max_tokens=1000
-                )
-            else:
-                # 기본값으로 Gemini 사용
-                from langchain_google_genai import ChatGoogleGenerativeAI
-                self._llm = ChatGoogleGenerativeAI(
-                    model=settings.gemini_model,
-                    google_api_key=settings.gemini_api_key,
-                    temperature=0.1,
-                    max_output_tokens=1000
-                )
+            # LLM 어댑터 팩토리를 통해 초기화
+            self._llm = llm_factory.create_adapter(settings)
+            logger.info(f"LLM 어댑터 초기화 완료: {self._llm.provider_name} - {self._llm.model_name}")
             
             # 벡터 스토어 서비스 초기화
             await vector_store_service.initialize()
-            
-            # 커스텀 리트리버 생성
-            self._retriever = CustomRetriever(
-                vector_store_service=vector_store_service
-            )
-            
-            # QA 체인 생성
-            self._qa_chain = self._create_qa_chain()
             
             self._initialized = True
             logger.info("RAG 서비스 초기화 완료")
@@ -122,167 +41,219 @@ class RAGService:
             logger.error(f"RAG 서비스 초기화 실패: {e}")
             raise
     
-    def _create_qa_chain(self) -> RetrievalQA:
-        """QA 체인 생성"""
-        # 한국어 최적화된 프롬프트 템플릿
-        prompt_template = """
-당신은 Figure 디자인 도구에 대한 전문 어시스턴트입니다. 
-주어진 문맥 정보를 바탕으로 사용자의 질문에 정확하고 도움이 되는 답변을 제공해주세요.
-
-문맥 정보:
-{context}
-
-질문: {question}
-
-답변 가이드라인:
-1. 주어진 문맥 정보를 우선적으로 활용하세요
-2. 정확하고 구체적인 정보를 제공하세요
-3. 모르는 내용은 추측하지 말고 솔직히 말씀해주세요
-4. 가능하면 단계별 설명이나 예시를 포함해주세요
-5. 한국어로 자연스럽게 답변해주세요
-
-답변:"""
-
-        prompt = PromptTemplate(
-            template=prompt_template,
-            input_variables=["context", "question"]
-        )
-        
-        return RetrievalQA.from_chain_type(
-            llm=self._llm,
-            chain_type="stuff",
-            retriever=self._retriever,
-            chain_type_kwargs={"prompt": prompt},
-            return_source_documents=True
-        )
-    
-    async def process_query(self, request: QueryRequest) -> QueryResponse:
-        """질의 처리"""
+    async def query(self, question: str, include_sources: bool = True) -> Dict[str, Any]:
+        """질의응답 수행"""
         if not self._initialized:
             await self.initialize()
         
-        start_time = time.time()
-        
         try:
-            # 벡터 검색으로 관련 문서 찾기
+            logger.info(f"RAG 질의 시작: {question}")
+            
+            # 관련 문서 검색
             search_results = await vector_store_service.search_similar(
-                query=request.query,
-                max_results=request.max_results,
-                site_ids=request.site_ids,
-                similarity_threshold=request.similarity_threshold
+                query=question,
+                max_results=5,
+                similarity_threshold=0.2
             )
             
             if not search_results:
-                return QueryResponse(
-                    query=request.query,
-                    answer="죄송합니다. 관련된 정보를 찾을 수 없습니다. 다른 키워드로 시도해보시거나 질문을 더 구체적으로 해주세요.",
-                    results=[],
-                    total_results=0,
-                    query_time=time.time() - start_time,
-                    sources=[]
-                )
+                # 검색 결과가 없는 경우
+                response = {
+                    "answer": "제공된 정보로는 답변할 수 없습니다. 관련 문서를 찾을 수 없습니다.",
+                    "question": question
+                }
+                if include_sources:
+                    response["sources"] = []
+                return response
             
-            # 검색 결과를 직접 사용하여 LLM 호출
+            # 컨텍스트 구성
             context = "\n\n".join([result["content"] for result in search_results])
             
-            # 프롬프트 생성
-            prompt = f"""당신은 Figure 디자인 도구에 대한 전문 어시스턴트입니다. 
-주어진 문맥 정보를 바탕으로 사용자의 질문에 정확하고 도움이 되는 답변을 제공해주세요.
-
-문맥 정보:
-{context}
-
-질문: {request.query}
-
-답변 가이드라인:
-1. 주어진 문맥 정보를 우선적으로 활용하세요
-2. 정확하고 구체적인 정보를 제공하세요
-3. 모르는 내용은 추측하지 말고 솔직히 말씀해주세요
-4. 가능하면 단계별 설명이나 예시를 포함해주세요
-5. 한국어로 자연스럽게 답변해주세요
-
-답변:"""
+            # LLM을 통한 답변 생성
+            answer = await self._llm.generate_response(question, context)
             
-            # LLM 호출
-            llm_response = await self._llm.ainvoke(prompt)
-            answer = llm_response.content if hasattr(llm_response, 'content') else str(llm_response)
+            # 응답 구성
+            response = {
+                "answer": answer,
+                "question": question
+            }
             
-            # 소스 정보 구성
+            # 소스 문서 포함 (옵션)
+            if include_sources:
             sources = []
-            for search_result in search_results:
+                for result in search_results:
                 source_info = {
-                    "content": search_result["content"][:200] + "..." if len(search_result["content"]) > 200 else search_result["content"],
-                    "title": search_result["metadata"].get("title", "제목 없음"),
-                    "doc_type": search_result["metadata"].get("doc_type", "unknown"),
-                    "similarity": round(search_result["similarity"], 3),
-                    "source_url": search_result["metadata"].get("source_url")
+                        "content": result["content"],
+                        "metadata": result["metadata"]
                 }
                 sources.append(source_info)
+                response["sources"] = sources
             
-            processing_time = time.time() - start_time
+            # 사용량 추적
+            answer_length = len(answer)
+            estimated_tokens = (len(question) + len(context) + answer_length) // 4  # 대략적인 토큰 추정
             
-            # QueryResult 객체 생성
-            query_results = []
-            for search_result in search_results:
-                query_result = QueryResult(
-                    content=search_result["content"][:200] + "..." if len(search_result["content"]) > 200 else search_result["content"],
-                    source=search_result["metadata"].get("source", "알 수 없음"),
-                    site_id=search_result["metadata"].get("site_id", "unknown"),
-                    score=search_result["similarity"],
-                    metadata=search_result["metadata"]
-                )
-                query_results.append(query_result)
-            
-            return QueryResponse(
-                answer=answer,
-                results=query_results,
-                total_results=len(query_results),
-                query_time=round(processing_time, 3),
-                sources=[r.source for r in query_results]
+            usage_tracker.record_usage(
+                provider=self._llm.provider_name,
+                service="llm",
+                model=self._llm.model_name,
+                tokens_used=estimated_tokens,
+                request_type="rag_query",
+                success=True
             )
+            
+            logger.info(f"RAG 질의 완료: {len(answer)} 문자 응답")
+            return response
             
         except Exception as e:
-            logger.error(f"질의 처리 실패: {e}")
-            return QueryResponse(
-                answer=f"처리 중 오류가 발생했습니다: {str(e)}",
-                results=[],
-                total_results=0,
-                query_time=time.time() - start_time,
-                sources=[]
-            )
+            logger.error(f"RAG 질의 실패: {e}")
+            raise
     
-    async def _run_qa_chain(self, query: str) -> Dict[str, Any]:
-        """QA 체인 실행 (비동기 래퍼)"""
-        import asyncio
+    async def query_without_context(self, question: str) -> str:
+        """컨텍스트 없이 직접 LLM에 질의"""
+        if not self._initialized:
+            await self.initialize()
         
         try:
-            # 이벤트 루프에서 동기 체인 실행
-            loop = asyncio.get_event_loop()
-            result = await loop.run_in_executor(
-                None, 
-                lambda: self._qa_chain({"query": query})
+            logger.info(f"직접 LLM 질의: {question}")
+            
+            # LLM 직접 호출
+            answer = await self._llm.generate_response(question)
+            
+            # 사용량 추적
+            estimated_tokens = (len(question) + len(answer)) // 4
+            usage_tracker.record_usage(
+                provider=self._llm.provider_name,
+                service="llm",
+                model=self._llm.model_name,
+                tokens_used=estimated_tokens,
+                request_type="direct_query",
+                success=True
             )
-            return result
+            
+            logger.info(f"직접 LLM 질의 완료: {len(answer)} 문자")
+            return answer
+            
         except Exception as e:
-            logger.error(f"QA 체인 실행 실패: {e}")
-            return {
-                "result": "답변 생성 중 오류가 발생했습니다.",
-                "source_documents": []
-            }
+            logger.error(f"직접 LLM 질의 실패: {e}")
+            raise
+    
+    async def summarize_document(self, content: str, max_length: int = 200) -> str:
+        """문서 요약"""
+        if not self._initialized:
+            await self.initialize()
+        
+        try:
+            logger.info(f"문서 요약 시작: {len(content)} 문자")
+            
+            summary = await self._llm.summarize(content, max_length)
+            
+            # 사용량 추적
+            estimated_tokens = (len(content) + len(summary)) // 4
+            usage_tracker.record_usage(
+                provider=self._llm.provider_name,
+                service="llm",
+                model=self._llm.model_name,
+                tokens_used=estimated_tokens,
+                request_type="summarization",
+                success=True
+            )
+            
+            logger.info(f"문서 요약 완료: {len(summary)} 문자")
+            return summary
+            
+        except Exception as e:
+            logger.error(f"문서 요약 실패: {e}")
+            raise
+    
+    async def analyze_sentiment(self, text: str) -> Dict[str, Any]:
+        """감정 분석"""
+        if not self._initialized:
+            await self.initialize()
+        
+        try:
+            logger.info(f"감정 분석 시작: {len(text)} 문자")
+            
+            sentiment_result = await self._llm.analyze_sentiment(text)
+            
+            # 사용량 추적
+            estimated_tokens = len(text) // 4
+            usage_tracker.record_usage(
+                provider=self._llm.provider_name,
+                service="llm",
+                model=self._llm.model_name,
+                tokens_used=estimated_tokens,
+                request_type="sentiment_analysis",
+                success=True
+            )
+            
+            logger.info("감정 분석 완료")
+            return sentiment_result
+            
+        except Exception as e:
+            logger.error(f"감정 분석 실패: {e}")
+            raise
+    
+    async def extract_keywords(self, text: str, count: int = 10) -> List[str]:
+        """키워드 추출"""
+        if not self._initialized:
+            await self.initialize()
+        
+        try:
+            logger.info(f"키워드 추출 시작: {len(text)} 문자")
+            
+            keywords = await self._llm.extract_keywords(text, count)
+            
+            # 사용량 추적
+            estimated_tokens = len(text) // 4
+            usage_tracker.record_usage(
+                provider=self._llm.provider_name,
+                service="llm",
+                model=self._llm.model_name,
+                tokens_used=estimated_tokens,
+                request_type="keyword_extraction",
+                success=True
+            )
+            
+            logger.info(f"키워드 추출 완료: {len(keywords)}개")
+            return keywords
+            
+        except Exception as e:
+            logger.error(f"키워드 추출 실패: {e}")
+            raise
     
     async def get_service_status(self) -> Dict[str, Any]:
-        """서비스 상태 조회"""
-        vector_info = await vector_store_service.get_collection_info()
+        """서비스 상태 반환"""
+        llm_info = {}
+        if self._llm:
+            llm_info = {
+                "llm_provider": self._llm.provider_name,
+                "llm_model": self._llm.model_name,
+                "max_tokens": self._llm.max_tokens,
+                "temperature": self._llm.temperature,
+                "usage_stats": self._llm.get_usage_stats()
+            }
+        else:
+            llm_info = {
+                "llm_provider": settings.llm_provider,
+                "llm_model": "Not initialized",
+                "max_tokens": 0,
+                "temperature": 0.0,
+                "usage_stats": {}
+            }
         
         return {
             "rag_service_initialized": self._initialized,
-            "llm_provider": settings.llm_provider,
             "embedding_provider": settings.embedding_provider,
-            "current_llm_model": settings.gemini_model if settings.llm_provider == "gemini" else settings.openai_model,
-            "current_embedding_model": settings.gemini_embedding_model if settings.embedding_provider == "gemini" else settings.openai_embedding_model,
-            "vector_store": vector_info
+            "embedding_model": settings.gemini_embedding_model if settings.embedding_provider == "gemini" else settings.openai_embedding_model,
+            "vector_store_initialized": vector_store_service._initialized if hasattr(vector_store_service, '_initialized') else False,
+            **llm_info
         }
+    
+    def get_available_providers(self) -> List[str]:
+        """사용 가능한 LLM 프로바이더 목록"""
+        return llm_factory.get_available_providers()
 
 
-# 글로벌 인스턴스
+# 싱글톤 인스턴스
 rag_service = RAGService() 

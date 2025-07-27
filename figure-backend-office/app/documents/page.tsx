@@ -190,8 +190,8 @@ export default function DocumentsPage() {
     const IconComponent = config.icon
     
     return (
-      <Badge className={`${config.className} text-xs font-medium border flex items-center gap-1`}>
-        <IconComponent className="h-3 w-3" />
+      <Badge className={`${config.className} text-sm font-medium border flex items-center gap-1.5 px-3 py-1.5`}>
+        <IconComponent className="h-4 w-4" />
         {config.label}
       </Badge>
     )
@@ -400,8 +400,8 @@ export default function DocumentsPage() {
         </div>
 
         {/* Documents Display */}
-        <Card className="border-0 shadow-sm">
-          <CardContent className="p-6">
+        <Card className="border border-gray-200 shadow-sm bg-gray-50">
+          <CardContent className="p-6 bg-gray-50">
             {isLoading ? (
               <div className="flex flex-col items-center justify-center py-12 space-y-4">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-figure-500"></div>
@@ -446,21 +446,22 @@ export default function DocumentsPage() {
                 </div>
               </div>
             ) : viewMode === 'list' ? (
-              <div className="space-y-3">
+              <div className="space-y-1 py-2">
                 {filteredDocuments.map((document: Document) => (
                   <div
                     key={document.id}
-                    className={`group flex items-center gap-4 p-4 rounded-lg border transition-all hover:shadow-md hover:border-gray-300 ${
+                    className={`group relative flex items-center gap-4 p-5 rounded-lg border transition-all hover:shadow-lg hover:border-gray-300 hover:-translate-y-0.5 ${
                       selectedDocuments.includes(document.id) 
-                        ? 'border-figure-200 bg-figure-50' 
-                        : 'border-gray-100 bg-white hover:bg-gray-50'
-                    }`}
+                        ? 'border-figure-300 bg-figure-50 shadow-md ring-1 ring-figure-200' 
+                        : 'border-gray-300 bg-white hover:bg-gray-50 shadow-md hover:shadow-lg'
+                    } z-10 backdrop-blur-sm min-h-[80px]`}
+                    style={{ marginBottom: '16px' }}
                   >
                     <input
                       type="checkbox"
                       checked={selectedDocuments.includes(document.id)}
                       onChange={() => toggleDocumentSelection(document.id)}
-                      className="rounded border-gray-300 text-figure-500 focus:ring-figure-500"
+                      className="h-5 w-5 rounded border-gray-300 text-figure-500 focus:ring-figure-500 focus:ring-offset-2 transition-all duration-200"
                     />
                     
                     <div className="flex-shrink-0">
@@ -486,35 +487,33 @@ export default function DocumentsPage() {
                           </div>
                         </div>
                         
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3">
                           {getStatusBadge(document.status)}
                           
-                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-200">
                             <Button
                               onClick={() => handleViewDocument(document)}
                               variant="ghost"
                               size="sm"
-                              className="h-8 w-8 p-0 text-gray-400 hover:text-figure-600"
+                              className="h-10 w-10 p-0 text-gray-500 hover:text-figure-600 hover:bg-figure-50 rounded-lg transition-all duration-200 hover:scale-105"
+                              title="문서 보기"
                             >
-                              <Eye className="h-4 w-4" />
+                              <Eye className="h-5 w-5" />
                             </Button>
                             <Button
                               onClick={() => handleDeleteDocument(document.id)}
                               variant="ghost"
                               size="sm"
-                              className="h-8 w-8 p-0 text-gray-400 hover:text-error-600"
+                              className="h-10 w-10 p-0 text-gray-500 hover:text-error-600 hover:bg-error-50 rounded-lg transition-all duration-200 hover:scale-105"
+                              title="문서 삭제"
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <Trash2 className="h-5 w-5" />
                             </Button>
                           </div>
                         </div>
                       </div>
                       
-                      {document.metadata && (
-                        <div className="mt-3 p-3 bg-gray-50 rounded-md border">
-                          <p className="text-sm text-gray-700 line-clamp-2">{document.metadata}</p>
-                        </div>
-                      )}
+
                     </div>
                   </div>
                 ))}

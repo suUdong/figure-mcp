@@ -17,16 +17,34 @@ class UserRole(enum.Enum):
 
 
 class Site(Base):
-    """사이트 정보 모델"""
+    """사이트 정보 모델 - IT 운영업무를 하는 회사 정보"""
     __tablename__ = "sites"
     
     id = Column(String, primary_key=True, index=True)
-    name = Column(String, nullable=False, index=True)
-    company = Column(String, nullable=False, index=True)
-    department = Column(String, nullable=True)
-    url = Column(String, nullable=True)
-    description = Column(Text, nullable=True)
+    name = Column(String, nullable=False, index=True)  # 회사/조직 이름
+    company = Column(String, nullable=False, index=True)  # 회사명
+    department = Column(String, nullable=True)  # 부서명
+    business_type = Column(String, nullable=True)  # 업종/사업 분야
+    contact_person = Column(String, nullable=True)  # 담당자
+    contact_email = Column(String, nullable=True)  # 담당자 이메일
+    contact_phone = Column(String, nullable=True)  # 연락처
+    
+    # URL을 선택사항으로 변경 (회사 웹사이트 주소)
+    url = Column(String, nullable=True, index=True)  # 회사 웹사이트 (선택사항)
+    description = Column(Text, nullable=True)  # 회사/업무 설명
     is_active = Column(Boolean, default=True)
+    
+    # 크롤링 설정 필드 (웹사이트가 있는 경우)
+    crawl_frequency = Column(Integer, default=24)  # 시간 단위
+    max_depth = Column(Integer, default=3)
+    include_patterns = Column(JSON, nullable=True)  # 포함 패턴 리스트
+    exclude_patterns = Column(JSON, nullable=True)  # 제외 패턴 리스트
+    
+    # 크롤링 상태 필드
+    last_crawled = Column(DateTime, nullable=True)
+    status = Column(String, default="active")  # active, inactive, error
+    document_count = Column(Integer, default=0)
+    
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

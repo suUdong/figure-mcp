@@ -28,18 +28,24 @@ export default function Home() {
       </section>
 
       {/* Metrics Section */}
-      <section className="space-y-4 lg:space-y-6">
+      <section className="space-y-4 lg:space-y-6 pt-2">
         <div className="flex items-center justify-between">
           <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
             시스템 메트릭
           </h2>
-          <span className="text-xs sm:text-sm text-gray-500 px-3 py-1 bg-gray-50 rounded-full border">
-            실시간 업데이트
-          </span>
+          <div className="flex items-center gap-4">
+            <span className="text-xs sm:text-sm text-gray-500 px-3 py-1 bg-gray-50 rounded-full border">
+              실시간 업데이트
+            </span>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-success-50 border border-success-200">
+              <div className="w-2 h-2 rounded-full bg-success-500 animate-pulse" />
+              <span className="text-xs font-medium text-success-700">실시간 연결</span>
+            </div>
+          </div>
         </div>
         
         {/* Enhanced Metrics Cards with Better Spacing */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 lg:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 lg:gap-6">
           <MetricsCards />
         </div>
       </section>

@@ -778,6 +778,39 @@
     grid-column: 1 / -1;
   }
 
+  /* === 메트릭 그리드 전용 스타일 === */
+.metrics-grid {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  gap: 1.5rem !important;
+  width: 100% !important;
+  align-items: stretch !important;
+}
+
+.metrics-grid > * {
+  flex: 1 1 0% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+}
+
+@media (max-width: 768px) {
+  .metrics-grid {
+    flex-direction: column !important;
+  }
+  .metrics-grid > * {
+    flex: none !important;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .metrics-grid {
+    flex-wrap: wrap !important;
+  }
+  .metrics-grid > * {
+    flex: 1 1 calc(50% - 0.75rem) !important;
+  }
+}
+
   /* === 접근성 유틸리티 === */
   .sr-only-focusable:not(:focus):not(:focus-within) {
     @apply sr-only;

@@ -14,7 +14,9 @@ import {
   TrendingUp,
   TrendingDown,
   Clock,
-  Server
+  Server,
+  Brain,
+  Zap
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
@@ -235,6 +237,21 @@ export default function MetricsCards() {
 
   const isSystemHealthy = !healthError && !healthLoading && healthData?.status === 'healthy';
 
+  // AI 모델 정보 추출
+  const aiModelInfo = healthData?.data?.config || {};
+  const llmProvider = aiModelInfo.llm_provider || 'Loading...';
+  const embeddingProvider = aiModelInfo.embedding_provider || 'Loading...';
+  const llmModel = aiModelInfo.current_llm_model || 'Loading...';
+  const embeddingModel = aiModelInfo.current_embedding_model || 'Loading...';
+  
+  // 모델명을 더 간결하게 표시
+  const formatModelName = (model: string) => {
+    if (model === 'Loading...') return model;
+    if (model.includes('claude-3-sonnet')) return 'Claude-3-Sonnet';
+    if (model.includes('text-embedding-004')) return 'Gemini-Embedding-004';
+    return model;
+  };
+
   const getMetricStatus = (hasError: boolean, isLoading: boolean, isConnected: boolean): 'healthy' | 'warning' | 'error' | 'loading' => {
     if (isLoading) return 'loading';
     if (hasError || !isConnected) return 'error';
@@ -299,44 +316,28 @@ export default function MetricsCards() {
       status: (isSystemHealthy ? 'healthy' : 'warning') as 'healthy' | 'warning' | 'error' | 'loading',
       description: isSystemHealthy ? '모든 서비스가 정상 작동 중' : '일부 서비스 점검 중',
       isRealTime: isConnected
+    },
+    {
+      title: 'AI 모델',
+      value: healthLoading ? 'Loading...' : `${llmProvider.charAt(0).toUpperCase() + llmProvider.slice(1)} + ${embeddingProvider.charAt(0).toUpperCase() + embeddingProvider.slice(1)}`,
+      change: {
+        value: 0,
+        trend: 'neutral' as const,
+        timeframe: '현재 설정'
+      },
+      icon: <Brain className="h-5 w-5" />,
+      gradient: 'bg-gradient-to-br from-purple-500 to-purple-600',
+      status: getMetricStatus(!!healthError, healthLoading, true) as 'healthy' | 'warning' | 'error' | 'loading',
+      description: `LLM: ${formatModelName(llmModel)} | 임베딩: ${formatModelName(embeddingModel)}`,
+      isRealTime: false
     }
   ];
 
   return (
     <>
-      {/* Live region for real-time updates */}
-      <div 
-        aria-live="polite" 
-        aria-atomic="true" 
-        className="sr-only"
-        id="metrics-updates"
-      >
-        {isConnected ? '실시간 메트릭 데이터가 업데이트되고 있습니다.' : '메트릭 데이터 연결이 끊어졌습니다.'}
-      </div>
-
-      {/* 상태 표시 */}
-      <div 
-        className="flex items-center justify-end mb-4"
-        role="status"
-        aria-label={isConnected ? '실시간 연결 상태' : '오프라인 상태'}
-      >
-        {isConnected ? (
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-success-50 border border-success-200">
-            <div className="w-2 h-2 rounded-full bg-success-500 animate-pulse" aria-hidden="true" />
-            <span className="text-xs font-medium text-success-700">실시간 연결</span>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-warning-50 border border-warning-200">
-            <Clock className="w-3 h-3 text-warning-600" aria-hidden="true" />
-            <span className="text-xs font-medium text-warning-700">오프라인</span>
-          </div>
-        )}
-      </div>
-
-      {/* 메트릭 카드들 - 그리드 없이 개별 카드만 */}
       {metricsCardsData.map((metric, index) => (
         <MetricCard
-          key={index}
+          key={`metric-${index}`}
           title={metric.title}
           value={metric.value}
           change={metric.change}
@@ -347,28 +348,6 @@ export default function MetricsCards() {
           isRealTime={metric.isRealTime}
         />
       ))}
-
-      {/* Error State */}
-      {metricsError && (
-        <div 
-          className="col-span-full mt-6 p-4 rounded-xl border border-error-200 bg-error-50"
-          role="alert"
-          aria-labelledby="error-title"
-          aria-describedby="error-description"
-        >
-          <div className="flex items-center gap-3">
-            <AlertTriangle className="h-5 w-5 text-error-600 flex-shrink-0" aria-hidden="true" />
-            <div>
-              <h3 id="error-title" className="text-sm font-medium text-error-800">
-                메트릭 데이터 로드 오류
-              </h3>
-              <p id="error-description" className="text-sm text-error-600 mt-1">
-                백엔드 서버와의 연결을 확인해주세요. 문제가 지속되면 시스템 관리자에게 문의하세요.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 } 

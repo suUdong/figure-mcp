@@ -11,8 +11,9 @@ export function useAdminStats() {
       const response = await adminApi.getStats();
       return response.data.data as AdminStats;
     },
-    refetchInterval: 30000, // 30초마다 새로고침
+    refetchInterval: 60000, // 1분마다 새로고침 (30초 → 60초)
     retry: 1,
+    staleTime: 30000, // 30초간 캐시 유지
   });
 }
 
@@ -23,8 +24,9 @@ export function useSystemMetrics() {
       const response = await adminApi.getMetrics();
       return response.data.data as SystemMetrics;
     },
-    refetchInterval: 5000, // 5초마다 새로고침
+    refetchInterval: 30000, // 30초마다 새로고침 (5초 → 30초)
     retry: 1,
+    staleTime: 15000, // 15초간 캐시 유지
   });
 }
 
@@ -35,8 +37,9 @@ export function useSystemHealth() {
       const response = await systemApi.getHealth();
       return response.data;
     },
-    refetchInterval: 10000, // 10초마다 새로고침
+    refetchInterval: 60000, // 1분마다 새로고침 (10초 → 60초)
     retry: 1,
+    staleTime: 30000, // 30초간 캐시 유지
   });
 }
 
@@ -47,7 +50,8 @@ export function useSystemStatus() {
       const response = await systemApi.getStatus();
       return response.data.data as SystemStatus;
     },
-    refetchInterval: 30000, // 30초마다 새로고침
+    refetchInterval: 120000, // 2분마다 새로고침 (30초 → 2분)
     retry: 1,
+    staleTime: 60000, // 1분간 캐시 유지
   });
 } 

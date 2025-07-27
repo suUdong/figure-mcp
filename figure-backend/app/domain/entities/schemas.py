@@ -21,19 +21,46 @@ class DocumentType(str, Enum):
     
 
 class Site(BaseModel):
-    """사이트 정보 모델"""
+    """사이트 정보 모델 - IT 운영업무를 하는 회사 정보"""
     model_config = ConfigDict(
         str_strip_whitespace=True,
         validate_assignment=True
     )
     
     id: Optional[str] = Field(None, description="사이트 ID")
-    name: str = Field(..., min_length=1, description="사이트 이름")
-    url: str = Field(..., description="사이트 URL")
-    description: Optional[str] = Field(None, description="사이트 설명")
-    created_at: Optional[datetime] = Field(default_factory=datetime.now)
+    name: str = Field(..., min_length=1, description="회사/조직 이름")
+    company: str = Field(..., min_length=1, description="회사명")
+    department: Optional[str] = Field(None, description="부서명")
+    business_type: Optional[str] = Field(None, description="업종/사업 분야")
+    contact_person: Optional[str] = Field(None, description="담당자")
+    contact_email: Optional[str] = Field(None, description="담당자 이메일")
+    contact_phone: Optional[str] = Field(None, description="연락처")
+    
+    # URL은 선택사항으로 변경 (회사 웹사이트 주소)
+    url: Optional[str] = Field(None, description="회사 웹사이트 URL (선택사항)")
+    description: Optional[str] = Field(None, description="회사/업무 설명")
     is_active: bool = Field(default=True, description="활성 상태")
     
+    # 크롤링 설정 (웹사이트가 있는 경우)
+    crawl_frequency: int = Field(default=24, description="크롤링 주기(시간)")
+    max_depth: int = Field(default=3, description="최대 크롤링 깊이")
+    include_patterns: Optional[List[str]] = Field(None, description="포함 패턴")
+    exclude_patterns: Optional[List[str]] = Field(None, description="제외 패턴")
+    
+    # 크롤링 상태
+    last_crawled: Optional[datetime] = Field(None, description="마지막 크롤링 시간")
+    status: str = Field(default="active", description="상태 (active, inactive, error)")
+    document_count: int = Field(default=0, description="문서 수")
+    
+    created_at: Optional[datetime] = Field(default_factory=datetime.now)
+    updated_at: Optional[datetime] = Field(default_factory=datetime.now)
+    
+    # 프론트엔드 호환을 위한 속성
+    @property
+    def enabled(self) -> bool:
+        """is_active를 enabled로 매핑"""
+        return self.is_active
+
 
 class Document(BaseModel):
     """문서 정보 모델"""
@@ -146,23 +173,56 @@ class AdminStats(BaseModel):
 
 
 # Site related schemas
-class SiteCreate(BaseModel):
-    """사이트 생성 요청 모델"""
-    model_config = ConfigDict(str_strip_whitespace=True)
+class CreateSiteRequest(BaseModel):
+    """회사(사이트) 생성 요청 모델"""
+    model_config = ConfigDict(
+        str_strip_whitespace=True
+    )
     
-    name: str = Field(..., min_length=1, description="사이트 이름")
-    url: str = Field(..., pattern=r'^https?://.+', description="사이트 URL (http/https)")
-    description: Optional[str] = Field(None, description="사이트 설명")
-    is_active: bool = Field(default=True, description="활성 상태")
+    name: str = Field(..., min_length=1, description="회사/조직 이름")
+    company: str = Field(..., min_length=1, description="회사명")
+    department: Optional[str] = Field(None, description="부서명")
+    business_type: Optional[str] = Field(None, description="업종/사업 분야")
+    contact_person: Optional[str] = Field(None, description="담당자")
+    contact_email: Optional[str] = Field(None, description="담당자 이메일")
+    contact_phone: Optional[str] = Field(None, description="연락처")
+    
+    # URL은 선택사항
+    url: Optional[str] = Field(None, description="회사 웹사이트 URL (선택사항)")
+    description: Optional[str] = Field(None, description="회사/업무 설명")
+    
+    # 크롤링 설정 (웹사이트가 있는 경우)
+    crawl_frequency: int = Field(default=24, description="크롤링 주기(시간)")
+    max_depth: int = Field(default=3, description="최대 크롤링 깊이")
+    include_patterns: Optional[List[str]] = Field(None, description="포함 패턴")
+    exclude_patterns: Optional[List[str]] = Field(None, description="제외 패턴")
 
 
-class SiteUpdate(BaseModel):
-    """사이트 업데이트 요청 모델"""
-    model_config = ConfigDict(str_strip_whitespace=True)
+class UpdateSiteRequest(BaseModel):
+    """회사(사이트) 수정 요청 모델"""
+    model_config = ConfigDict(
+        str_strip_whitespace=True
+    )
     
-    name: Optional[str] = Field(None, min_length=1, description="사이트 이름")
-    url: Optional[str] = Field(None, pattern=r'^https?://.+', description="사이트 URL (http/https)")
-    description: Optional[str] = Field(None, description="사이트 설명")
+    name: Optional[str] = Field(None, min_length=1, description="회사/조직 이름")
+    company: Optional[str] = Field(None, min_length=1, description="회사명")
+    department: Optional[str] = Field(None, description="부서명")
+    business_type: Optional[str] = Field(None, description="업종/사업 분야")
+    contact_person: Optional[str] = Field(None, description="담당자")
+    contact_email: Optional[str] = Field(None, description="담당자 이메일")
+    contact_phone: Optional[str] = Field(None, description="연락처")
+    
+    # URL은 선택사항
+    url: Optional[str] = Field(None, description="회사 웹사이트 URL (선택사항)")
+    description: Optional[str] = Field(None, description="회사/업무 설명")
+    
+    # 크롤링 설정
+    crawl_frequency: Optional[int] = Field(None, description="크롤링 주기(시간)")
+    max_depth: Optional[int] = Field(None, description="최대 크롤링 깊이")
+    include_patterns: Optional[List[str]] = Field(None, description="포함 패턴")
+    exclude_patterns: Optional[List[str]] = Field(None, description="제외 패턴")
+    
+    # 활성 상태
     is_active: Optional[bool] = Field(None, description="활성 상태")
 
 

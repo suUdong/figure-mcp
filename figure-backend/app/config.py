@@ -28,13 +28,21 @@ class Settings(BaseSettings):
     port: int = Field(default=8001, description="서버 포트")
     
     # Provider Configuration (헥사고날 아키텍처)
-    llm_provider: str = Field(default="gemini", description="LLM 프로바이더")
+    llm_provider: str = Field(default="claude", description="LLM 프로바이더")
     embedding_provider: str = Field(default="gemini", description="임베딩 프로바이더")
+    
+    # Anthropic Claude API (기본 LLM 프로바이더)
+    claude_api_key: Optional[str] = Field(default=None, description="Anthropic Claude API 키")
+    claude_model: str = Field(default="claude-3-5-sonnet-20241022", description="Claude 모델")
+    claude_max_tokens: int = Field(default=4096, description="Claude 최대 토큰 수")
+    claude_temperature: float = Field(default=0.1, description="Claude 온도 설정")
     
     # Google Gemini API
     gemini_api_key: Optional[str] = Field(default=None, description="Google Gemini API 키")
     gemini_model: str = Field(default="gemini-1.5-flash", description="Gemini 모델")
     gemini_embedding_model: str = Field(default="models/text-embedding-004", description="Gemini 임베딩 모델")
+    gemini_max_tokens: int = Field(default=2048, description="Gemini 최대 토큰 수")
+    gemini_temperature: float = Field(default=0.1, description="Gemini 온도 설정")
     
     # Groq API (Optional)
     groq_api_key: Optional[str] = Field(default=None, description="Groq API 키")
@@ -44,6 +52,8 @@ class Settings(BaseSettings):
     openai_api_key: Optional[str] = Field(default=None, description="OpenAI API 키")
     openai_model: str = Field(default="gpt-4o-mini", description="OpenAI 모델")
     openai_embedding_model: str = Field(default="text-embedding-3-small", description="OpenAI 임베딩 모델")
+    openai_max_tokens: int = Field(default=4096, description="OpenAI 최대 토큰 수")
+    openai_temperature: float = Field(default=0.1, description="OpenAI 온도 설정")
     
     # Voyage AI API (Optional)
     voyage_api_key: Optional[str] = Field(default=None, description="Voyage AI API 키")
@@ -89,6 +99,8 @@ class Settings(BaseSettings):
                 object.__setattr__(self, 'gemini_api_key', 'test-key')
             if not self.groq_api_key:
                 object.__setattr__(self, 'groq_api_key', 'test-key')
+            if not self.claude_api_key:
+                object.__setattr__(self, 'claude_api_key', 'test-key')
             if not self.openai_api_key:
                 object.__setattr__(self, 'openai_api_key', 'test-key')
             if not self.voyage_api_key:
@@ -97,6 +109,11 @@ class Settings(BaseSettings):
         
         # 프로덕션 환경에서는 사용하는 프로바이더의 API 키만 검증
         # 하지만 환경 변수가 없어도 기본값으로 처리 (더 유연하게)
+        if self.llm_provider == "claude":
+            if not self.claude_api_key:
+                print("⚠️  Warning: FIGURE_CLAUDE_API_KEY not set, using default")
+                object.__setattr__(self, 'claude_api_key', 'default-key')
+        
         if self.llm_provider == "gemini" or self.embedding_provider == "gemini":
             if not self.gemini_api_key:
                 print("⚠️  Warning: FIGURE_GEMINI_API_KEY not set, using default")

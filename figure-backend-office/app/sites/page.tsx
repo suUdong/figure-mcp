@@ -55,7 +55,7 @@ export default function SitesPage() {
 
   const filteredSites = sites?.filter(site => 
     site.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    site.url.toLowerCase().includes(searchQuery.toLowerCase())
+    site.url?.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   const getStatusBadge = (status: string, enabled: boolean) => {
@@ -83,8 +83,8 @@ export default function SitesPage() {
       <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">사이트 관리</h1>
-          <p className="text-gray-600 mt-1">웹 사이트를 추가하고 관리할 수 있습니다</p>
+          <h1 className="text-2xl font-bold text-gray-900">회사 관리</h1>
+          <p className="text-gray-600 mt-1">IT 운영업무를 하는 회사를 등록하고 관리할 수 있습니다</p>
         </div>
         <div className="flex items-center space-x-3">
           <Button
@@ -102,7 +102,7 @@ export default function SitesPage() {
             className="flex items-center space-x-2"
           >
             <Plus className="h-4 w-4" />
-            <span>사이트 추가</span>
+            <span>회사 추가</span>
           </Button>
         </div>
       </div>
@@ -114,7 +114,7 @@ export default function SitesPage() {
             <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
             <input
               type="text"
-              placeholder="사이트 이름 또는 URL로 검색..."
+              placeholder="회사명 또는 부서명으로 검색..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -126,9 +126,9 @@ export default function SitesPage() {
       {/* Sites List */}
       <Card>
         <CardHeader>
-          <CardTitle>사이트 목록</CardTitle>
+          <CardTitle>등록된 회사 목록</CardTitle>
           <CardDescription>
-            총 {filteredSites?.length || 0}개의 사이트
+            총 {filteredSites?.length || 0}개의 회사
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -156,29 +156,52 @@ export default function SitesPage() {
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
-                      <Globe className="h-5 w-5 text-blue-500" />
-                      <div>
-                        <h3 className="font-semibold text-gray-900">{site.name}</h3>
-                        <div className="flex items-center space-x-4 mt-1 text-sm text-gray-500">
-                          <a 
-                            href={site.url} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="flex items-center space-x-1 hover:text-blue-600"
-                          >
-                            <span>{site.url}</span>
-                            <ExternalLink className="h-3 w-3" />
-                          </a>
-                          <span>{site.document_count || 0}개 문서</span>
-                          <span>
-                            {site.last_crawled ? 
-                              `마지막 크롤링: ${formatDistanceToNow(new Date(site.last_crawled), { 
-                                addSuffix: true, 
-                                locale: ko 
-                              })}` : 
-                              '크롤링 없음'
-                            }
-                          </span>
+                      <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-blue-100 text-blue-600">
+                        <span className="font-semibold text-sm">{site.company.charAt(0)}</span>
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="font-semibold text-gray-900">{site.name}</h3>
+                          {site.department && (
+                            <span className="text-sm text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+                              {site.department}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center space-x-4 text-sm text-gray-600">
+                          <span className="font-medium">{site.company}</span>
+                          {site.business_type && (
+                            <span className="text-gray-500">• {site.business_type}</span>
+                          )}
+                          <span className="text-gray-500">• {site.document_count || 0}개 문서</span>
+                          {site.url && (
+                            <a 
+                              href={site.url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="flex items-center space-x-1 text-blue-600 hover:text-blue-800"
+                            >
+                              <span>{new URL(site.url).hostname}</span>
+                              <ExternalLink className="h-3 w-3" />
+                            </a>
+                          )}
+                        </div>
+                        {site.contact_person && (
+                          <div className="mt-2 text-sm text-gray-500">
+                            담당자: {site.contact_person}
+                            {site.contact_email && (
+                              <span> ({site.contact_email})</span>
+                            )}
+                          </div>
+                        )}
+                        <div className="mt-2 text-xs text-gray-500">
+                          {site.last_crawled ? 
+                            `마지막 크롤링: ${formatDistanceToNow(new Date(site.last_crawled), { 
+                              addSuffix: true, 
+                              locale: ko 
+                            })}` : 
+                            site.url ? '크롤링 대기 중' : '웹사이트 없음'
+                          }
                         </div>
                       </div>
                     </div>
@@ -267,6 +290,12 @@ function SiteFormModal({
 }) {
   const [formData, setFormData] = useState({
     name: initialData?.name || '',
+    company: initialData?.company || '',
+    department: initialData?.department || '',
+    business_type: initialData?.business_type || '',
+    contact_person: initialData?.contact_person || '',
+    contact_email: initialData?.contact_email || '',
+    contact_phone: initialData?.contact_phone || '',
     url: initialData?.url || '',
     description: initialData?.description || '',
     crawl_frequency: initialData?.crawl_frequency || 24,
@@ -279,7 +308,13 @@ function SiteFormModal({
     e.preventDefault()
     onSubmit({
       name: formData.name,
-      url: formData.url,
+      company: formData.company,
+      department: formData.department || undefined,
+      business_type: formData.business_type || undefined,
+      contact_person: formData.contact_person || undefined,
+      contact_email: formData.contact_email || undefined,
+      contact_phone: formData.contact_phone || undefined,
+      url: formData.url || undefined,
       description: formData.description || undefined,
       crawl_frequency: formData.crawl_frequency,
       max_depth: formData.max_depth,
@@ -290,10 +325,13 @@ function SiteFormModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold">{title}</h2>
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-xl font-bold">{title}</h2>
+              <p className="text-sm text-gray-600 mt-1">IT 운영업무를 하는 회사 정보를 입력해주세요</p>
+            </div>
             <Button
               onClick={onClose}
               variant="ghost"
@@ -304,101 +342,201 @@ function SiteFormModal({
             </Button>
           </div>
           
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  사이트 이름 *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  사이트 URL *
-                </label>
-                <input
-                  type="url"
-                  required
-                  value={formData.url}
-                  onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                설명
-              </label>
-              <textarea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  크롤링 주기 (시간)
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  value={formData.crawl_frequency}
-                  onChange={(e) => setFormData({ ...formData, crawl_frequency: parseInt(e.target.value) })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  최대 깊이
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  value={formData.max_depth}
-                  onChange={(e) => setFormData({ ...formData, max_depth: parseInt(e.target.value) })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* 기본 회사 정보 섹션 */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h3 className="text-lg font-semibold mb-3 text-gray-800">기본 회사 정보</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    회사/조직 이름 *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="예: 삼성전자, 네이버"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    회사명 *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.company}
+                    onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="정식 회사명"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    부서명
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.department}
+                    onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="예: IT사업부, 개발팀"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    업종/사업 분야
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.business_type}
+                    onChange={(e) => setFormData({ ...formData, business_type: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="예: IT서비스, 전자제품 제조"
+                  />
+                </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  포함 패턴 (한 줄에 하나씩)
-                </label>
-                <textarea
-                  value={formData.include_patterns}
-                  onChange={(e) => setFormData({ ...formData, include_patterns: e.target.value })}
-                  rows={4}
-                  placeholder="/blog/*&#10;/docs/*"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  제외 패턴 (한 줄에 하나씩)
-                </label>
-                <textarea
-                  value={formData.exclude_patterns}
-                  onChange={(e) => setFormData({ ...formData, exclude_patterns: e.target.value })}
-                  rows={4}
-                  placeholder="/admin/*&#10;/login/*"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+            {/* 담당자 정보 섹션 */}
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <h3 className="text-lg font-semibold mb-3 text-gray-800">담당자 정보</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    담당자 이름
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.contact_person}
+                    onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="담당자 이름"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    담당자 이메일
+                  </label>
+                  <input
+                    type="email"
+                    value={formData.contact_email}
+                    onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="contact@company.com"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    연락처
+                  </label>
+                  <input
+                    type="tel"
+                    value={formData.contact_phone}
+                    onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="010-1234-5678"
+                  />
+                </div>
               </div>
             </div>
 
-            <div className="flex justify-end space-x-2 pt-4">
+            {/* 웹사이트 정보 섹션 */}
+            <div className="bg-green-50 p-4 rounded-lg">
+              <h3 className="text-lg font-semibold mb-3 text-gray-800">웹사이트 정보 (선택사항)</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    회사 웹사이트 URL
+                  </label>
+                  <input
+                    type="url"
+                    value={formData.url}
+                    onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="https://company.com (선택사항)"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">웹사이트가 있는 경우 크롤링을 수행할 수 있습니다</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    회사/업무 설명
+                  </label>
+                  <textarea
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="회사 소개, 주요 업무, 특징 등을 입력해주세요"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* 크롤링 설정 섹션 (웹사이트 URL이 있는 경우만 표시) */}
+            {formData.url && (
+              <div className="bg-yellow-50 p-4 rounded-lg">
+                <h3 className="text-lg font-semibold mb-3 text-gray-800">크롤링 설정</h3>
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      크롤링 주기 (시간)
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={formData.crawl_frequency}
+                      onChange={(e) => setFormData({ ...formData, crawl_frequency: parseInt(e.target.value) })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      최대 깊이
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={formData.max_depth}
+                      onChange={(e) => setFormData({ ...formData, max_depth: parseInt(e.target.value) })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      포함 패턴 (한 줄에 하나씩)
+                    </label>
+                    <textarea
+                      value={formData.include_patterns}
+                      onChange={(e) => setFormData({ ...formData, include_patterns: e.target.value })}
+                      rows={4}
+                      placeholder="/blog/*&#10;/docs/*"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      제외 패턴 (한 줄에 하나씩)
+                    </label>
+                    <textarea
+                      value={formData.exclude_patterns}
+                      onChange={(e) => setFormData({ ...formData, exclude_patterns: e.target.value })}
+                      rows={4}
+                      placeholder="/admin/*&#10;/login/*"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end space-x-3 pt-4 border-t">
               <Button
                 type="button"
                 onClick={onClose}
@@ -410,6 +548,7 @@ function SiteFormModal({
               <Button
                 type="submit"
                 disabled={isLoading}
+                className="bg-blue-600 hover:bg-blue-700"
               >
                 {isLoading ? '저장 중...' : '저장'}
               </Button>

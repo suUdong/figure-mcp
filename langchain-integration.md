@@ -18,7 +18,7 @@ class LLMManager:
     def __init__(self):
         self.providers = {
             "openai": ChatOpenAI(model="gpt-4"),
-            "claude": ChatAnthropic(model="claude-3-sonnet-20240229"),
+            "claude": ChatAnthropic(model="claude-3-5-sonnet-20241022"),
             "azure": AzureOpenAI(deployment_name="gpt-4"),
             "local": Ollama(model="llama2")  # 로컬 LLM
         }
