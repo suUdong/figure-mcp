@@ -16,10 +16,13 @@ import uvicorn
 
 from app.config import settings
 from app.domain.entities.schemas import APIResponse
-from app.interfaces.api import rag, documents, sites, admin, usage, auth
+from app.interfaces.api import rag, documents, sites, admin, usage, auth, template
 from app.application.services.vector_store import vector_store_service
 from app.application.services.rag_service import rag_service
 from app.application.services.auth_service import auth_service
+from app.application.services.template_service import initialize_template_service
+from app.infrastructure.adapters.template_repository_impl import SQLiteTemplateRepository, FileSystemTemplateStorageRepository
+from app.infrastructure.adapters.template_usage_repository_impl import SQLiteTemplateUsageRepository
 
 # 로깅 설정
 logging.basicConfig(
@@ -46,6 +49,12 @@ async def lifespan(app: FastAPI):
         
         logger.info("🤖 RAG 서비스 초기화 중...")
         await rag_service.initialize()
+        
+        logger.info("📝 템플릿 서비스 초기화 중...")
+        template_repo = SQLiteTemplateRepository()
+        usage_repo = SQLiteTemplateUsageRepository()
+        storage_repo = FileSystemTemplateStorageRepository()
+        initialize_template_service(template_repo, usage_repo, storage_repo)
         
         logger.info("🔐 기본 관리자 계정 확인/생성 중...")
         auth_service.create_default_admin()
@@ -120,6 +129,7 @@ app.include_router(auth.router, prefix="/api")
 app.include_router(rag.router, prefix="/api")
 app.include_router(documents.router, prefix="/api")
 app.include_router(sites.router, prefix="/api")
+app.include_router(template.router)
 app.include_router(admin.router)
 app.include_router(usage.router, prefix="/api")
 

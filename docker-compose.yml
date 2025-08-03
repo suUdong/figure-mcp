@@ -47,10 +47,14 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=development
+      - BACKEND_API_URL=http://figure-backend:8001/api
     volumes:
       - ./figure-mcp-server:/app
       - /app/node_modules
+    depends_on:
+      figure-backend:
+        condition: service_healthy
     networks:
       - figure-network
 

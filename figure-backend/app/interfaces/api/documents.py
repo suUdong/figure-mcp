@@ -16,8 +16,12 @@ from app.domain.entities.schemas import (
     Document, UploadDocumentRequest, APIResponse, DocumentType,
     JobCreate, JobType, JobUpdate, JobStatus
 )
+from app.domain.entities.template_entities import (
+    Template, TemplateType, TemplateFormat, TemplateCreateRequest
+)
 from app.application.services.vector_store import vector_store_service
 from app.application.services.job_service import job_service
+from app.application.services.template_service import get_template_service, TemplateService
 from app.config import settings
 
 logger = logging.getLogger(__name__)
@@ -49,14 +53,19 @@ async def get_vector_store_service():
 @router.post(
     "/upload-file",
     response_model=APIResponse,
-    summary="파일 업로드",
-    description="파일을 업로드하고 벡터 데이터베이스에 저장합니다."
+    summary="파일 업로드 (하이브리드)",
+    description="파일을 업로드하고 벡터 데이터베이스에 저장합니다. 템플릿인 경우 SQLite에도 저장됩니다."
 )
 async def upload_file(
     file: UploadFile = File(...),
     site_id: str = Form(None),
     metadata: str = Form("{}"),
-    service: object = Depends(get_vector_store_service)
+    is_template: bool = Form(False),
+    template_type: str = Form(None),
+    template_name: str = Form(None),
+    template_description: str = Form(None),
+    service: object = Depends(get_vector_store_service),
+    template_service: TemplateService = Depends(get_template_service)
 ) -> APIResponse:
     """
     파일 업로드
@@ -172,27 +181,76 @@ async def upload_file(
             # 벡터 저장소에 추가
             doc_id = await service.add_document(document)
             
+            # 템플릿인 경우 SQLite에도 저장 (하이브리드 저장)
+            template_id = None
+            if is_template and template_type:
+                try:
+                    # 진행 상태 업데이트: 템플릿 저장 중
+                    job_service.update_job(job.id, JobUpdate(
+                        progress=90.0,
+                        message="템플릿 저장 중..."
+                    ))
+                    
+                    # 템플릿 생성 요청 구성
+                    template_request = TemplateCreateRequest(
+                        name=template_name or file.filename,
+                        description=template_description or f"{file.filename}에서 추출한 템플릿",
+                        template_type=TemplateType(template_type),
+                        format=TemplateFormat.MARKDOWN if file_ext in ['.md'] else TemplateFormat.TEXT,
+                        site_id=site_id,
+                        content=file_content,
+                        variables={},  # 기본 변수는 비워둠
+                        tags=["uploaded", "hybrid"],
+                        is_default=False
+                    )
+                    
+                    # 템플릿 저장
+                    template = await template_service.create_template(
+                        request=template_request,
+                        created_by="hybrid_upload",
+                        file_content=content,
+                        file_name=file.filename,
+                        content_type=file.content_type
+                    )
+                    template_id = template.id
+                    
+                    logger.info(f"하이브리드 저장 완료 - 문서: {doc_id}, 템플릿: {template_id}")
+                    
+                except Exception as template_error:
+                    logger.warning(f"템플릿 저장 실패 (벡터 저장은 성공): {template_error}")
+                    # 템플릿 저장 실패해도 벡터 저장은 성공했으므로 계속 진행
+            
             # 진행 상태 업데이트: 완료
             job_service.update_job(job.id, JobUpdate(
                 status=JobStatus.COMPLETED,
                 progress=100.0,
-                message="파일 업로드 완료",
-                metadata={"document_id": doc_id}
+                message="파일 업로드 완료" + (" (하이브리드 저장)" if is_template else ""),
+                metadata={
+                    "document_id": doc_id,
+                    "template_id": template_id
+                }
             ))
             
-            logger.info(f"파일 업로드 성공: {file.filename} -> {doc_id}")
+            logger.info(f"파일 업로드 성공: {file.filename} -> {doc_id}" + 
+                       (f", 템플릿: {template_id}" if template_id else ""))
+            
+            response_data = {
+                "document_id": doc_id,
+                "job_id": job.id,
+                "filename": file.filename,
+                "file_size": len(content),
+                "doc_type": SUPPORTED_EXTENSIONS[file_ext],
+                "created_at": document.created_at.isoformat(),
+                "is_hybrid": is_template
+            }
+            
+            if template_id:
+                response_data["template_id"] = template_id
             
             return APIResponse(
                 success=True,
-                message="파일 업로드 성공",
-                data={
-                    "document_id": doc_id,
-                    "job_id": job.id,
-                    "filename": file.filename,
-                    "file_size": len(content),
-                    "doc_type": SUPPORTED_EXTENSIONS[file_ext],
-                    "created_at": document.created_at.isoformat()
-                }
+                message="파일 업로드 성공" + (" (하이브리드 저장 완료)" if is_template else ""),
+                data=response_data
             )
             
         except Exception as e:
