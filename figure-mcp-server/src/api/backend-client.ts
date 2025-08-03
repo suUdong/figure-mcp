@@ -235,6 +235,168 @@ export class BackendApiClient {
       return null;
     }
   }
+
+  /**
+   * 메서드 의존성 분석
+   */
+  async analyzeMethodDependency(
+    projectPath: string,
+    language: string,
+    targetClass?: string
+  ): Promise<any> {
+    try {
+      const response = await this.client.post<APIResponse>(
+        '/analysis/method-dependency',
+        {
+          project_path: projectPath,
+          language: language,
+          target_class: targetClass
+        }
+      );
+      
+      if (response.data.success) {
+        return response.data.data;
+      } else {
+        logger.warn('메서드 의존성 분석 실패', response.data.message);
+        return null;
+      }
+    } catch (error) {
+      logger.error('메서드 의존성 분석 오류', { projectPath, language, targetClass, error });
+      return null;
+    }
+  }
+
+  /**
+   * 테이블 스키마 분석
+   */
+  async analyzeTableSchema(
+    databaseType: string,
+    connectionString?: string,
+    schemaFile?: string,
+    targetTables?: string[]
+  ): Promise<any> {
+    try {
+      const response = await this.client.post<APIResponse>(
+        '/analysis/table-schema',
+        {
+          database_type: databaseType,
+          connection_string: connectionString,
+          schema_file: schemaFile,
+          target_tables: targetTables
+        }
+      );
+      
+      if (response.data.success) {
+        return response.data.data;
+      } else {
+        logger.warn('테이블 스키마 분석 실패', response.data.message);
+        return null;
+      }
+    } catch (error) {
+      logger.error('테이블 스키마 분석 오류', { databaseType, connectionString, schemaFile, targetTables, error });
+      return null;
+    }
+  }
+
+  /**
+   * 순환 의존성 탐지
+   */
+  async detectCircularDependency(
+    projectPath: string,
+    language: string,
+    maxDepth?: number
+  ): Promise<any> {
+    try {
+      const response = await this.client.post<APIResponse>(
+        '/analysis/circular-dependency',
+        {
+          project_path: projectPath,
+          language: language,
+          max_depth: maxDepth
+        }
+      );
+      
+      if (response.data.success) {
+        return response.data.data;
+      } else {
+        logger.warn('순환 의존성 탐지 실패', response.data.message);
+        return null;
+      }
+    } catch (error) {
+      logger.error('순환 의존성 탐지 오류', { projectPath, language, maxDepth, error });
+      return null;
+    }
+  }
+
+  /**
+   * 영향도 점수 계산
+   */
+  async calculateImpactScore(
+    projectPath: string,
+    targetFiles: string[],
+    changeType: string,
+    language: string
+  ): Promise<any> {
+    try {
+      const response = await this.client.post<APIResponse>(
+        '/analysis/impact-score',
+        {
+          project_path: projectPath,
+          target_files: targetFiles,
+          change_type: changeType,
+          language: language
+        }
+      );
+      
+      if (response.data.success) {
+        return response.data.data;
+      } else {
+        logger.warn('영향도 점수 계산 실패', response.data.message);
+        return null;
+      }
+    } catch (error) {
+      logger.error('영향도 점수 계산 오류', { projectPath, targetFiles, changeType, language, error });
+      return null;
+    }
+  }
+
+  /**
+   * 종합 영향도 분석 리포트 생성
+   */
+  async generateComprehensiveImpactReport(
+    projectPath: string,
+    changeDescription: string,
+    targetModules: string[],
+    language: string,
+    includeDatabase?: boolean,
+    databaseType?: string
+  ): Promise<any> {
+    try {
+      const response = await this.client.post<APIResponse>(
+        '/analysis/comprehensive-impact-report',
+        {
+          project_path: projectPath,
+          change_description: changeDescription,
+          target_modules: targetModules,
+          language: language,
+          include_database: includeDatabase,
+          database_type: databaseType
+        }
+      );
+      
+      if (response.data.success) {
+        return response.data.data;
+      } else {
+        logger.warn('종합 영향도 분석 리포트 생성 실패', response.data.message);
+        return null;
+      }
+    } catch (error) {
+      logger.error('종합 영향도 분석 리포트 생성 오류', { 
+        projectPath, changeDescription, targetModules, language, includeDatabase, databaseType, error 
+      });
+      return null;
+    }
+  }
 }
 
 // 싱글톤 인스턴스

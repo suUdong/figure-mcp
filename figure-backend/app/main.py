@@ -16,7 +16,7 @@ import uvicorn
 
 from app.config import settings
 from app.domain.entities.schemas import APIResponse
-from app.interfaces.api import rag, documents, sites, admin, usage, auth, template
+from app.interfaces.api import rag, documents, sites, admin, usage, auth, template, analysis
 from app.application.services.vector_store import vector_store_service
 from app.application.services.rag_service import rag_service
 from app.application.services.auth_service import auth_service
@@ -132,6 +132,7 @@ app.include_router(sites.router, prefix="/api")
 app.include_router(template.router)
 app.include_router(admin.router)
 app.include_router(usage.router, prefix="/api")
+app.include_router(analysis.router, prefix="/api")
 
 
 # 기본 엔드포인트
