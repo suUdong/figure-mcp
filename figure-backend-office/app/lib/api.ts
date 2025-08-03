@@ -13,7 +13,7 @@ const getBaseURL = () => {
 
 export const api = axios.create({
   baseURL: getBaseURL(),
-  timeout: 5000, // 5초로 단축
+  timeout: 30000, // RAG 질의를 위해 30초로 확장
   headers: {
     "Content-Type": "application/json",
   },

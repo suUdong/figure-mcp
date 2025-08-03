@@ -283,13 +283,19 @@ class QueryResult(BaseModel):
     metadata: Dict[str, Any] = Field(default_factory=dict, description="메타데이터")
 
 
+class SourceInfo(BaseModel):
+    """소스 정보 모델"""
+    content: str = Field(..., description="문서 내용")
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="메타데이터")
+
+
 class QueryResponse(BaseModel):
     """쿼리 응답 모델"""
     answer: str = Field(..., description="AI 생성 답변")
     results: List[QueryResult] = Field(default_factory=list, description="검색 결과 목록")
     total_results: int = Field(default=0, description="전체 결과 수")
     query_time: float = Field(..., description="처리 시간 (초)")
-    sources: List[str] = Field(default_factory=list, description="참조 소스 목록")
+    sources: List[SourceInfo] = Field(default_factory=list, description="참조 소스 목록")
     job_id: Optional[str] = Field(None, description="작업 추적 ID")
 
 

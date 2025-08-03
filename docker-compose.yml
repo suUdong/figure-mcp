@@ -78,31 +78,31 @@ services:
       - FIGURE_EMBEDDING_PROVIDER=${FIGURE_EMBEDDING_PROVIDER:-voyage}
 
       # Anthropic Claude API Configuration (기본 LLM 프로바이더)
-      - FIGURE_CLAUDE_API_KEY=${CLAUDE_API_KEY:-${FIGURE_CLAUDE_API_KEY}}
-              - FIGURE_CLAUDE_MODEL=claude-3-5-sonnet-20241022
+      - FIGURE_CLAUDE_API_KEY=${FIGURE_CLAUDE_API_KEY}
+      - FIGURE_CLAUDE_MODEL=claude-3-5-sonnet-20241022
       - FIGURE_CLAUDE_MAX_TOKENS=4096
       - FIGURE_CLAUDE_TEMPERATURE=0.1
 
       # Google Gemini API Configuration (임베딩 프로바이더)
-      - FIGURE_GEMINI_API_KEY=${GEMINI_API_KEY:-${FIGURE_GEMINI_API_KEY}}
+      - FIGURE_GEMINI_API_KEY=${FIGURE_GEMINI_API_KEY}
       - FIGURE_GEMINI_MODEL=gemini-1.5-flash
       - FIGURE_GEMINI_EMBEDDING_MODEL=models/text-embedding-004
       - FIGURE_GEMINI_MAX_TOKENS=2048
       - FIGURE_GEMINI_TEMPERATURE=0.1
 
       # Groq API Configuration (Optional)
-      - FIGURE_GROQ_API_KEY=${GROQ_API_KEY:-${FIGURE_GROQ_API_KEY}}
+      - FIGURE_GROQ_API_KEY=${FIGURE_GROQ_API_KEY}
       - FIGURE_GROQ_MODEL=llama3-8b-8192
 
       # OpenAI API Configuration (Optional)
-      - FIGURE_OPENAI_API_KEY=${OPENAI_API_KEY:-${FIGURE_OPENAI_API_KEY}}
+      - FIGURE_OPENAI_API_KEY=${FIGURE_OPENAI_API_KEY}
       - FIGURE_OPENAI_MODEL=gpt-4o-mini
       - FIGURE_OPENAI_EMBEDDING_MODEL=text-embedding-3-large
       - FIGURE_OPENAI_MAX_TOKENS=4096
       - FIGURE_OPENAI_TEMPERATURE=0.1
 
       # Voyage AI API Configuration (Optional)
-      - FIGURE_VOYAGE_API_KEY=${VOYAGE_API_KEY:-${FIGURE_VOYAGE_API_KEY}}
+      - FIGURE_VOYAGE_API_KEY=${FIGURE_VOYAGE_API_KEY}
       - FIGURE_VOYAGE_EMBEDDING_MODEL=voyage-3-large
 
       # Storage Configuration
@@ -127,9 +127,9 @@ services:
       - FIGURE_CHROMA_COLLECTION_NAME=figure_documents
 
       # JIRA Configuration (선택사항)
-      - FIGURE_JIRA_SERVER=${JIRA_SERVER:-}
-      - FIGURE_JIRA_EMAIL=${JIRA_EMAIL:-}
-      - FIGURE_JIRA_API_TOKEN=${JIRA_API_TOKEN:-}
+      - FIGURE_JIRA_SERVER=${FIGURE_JIRA_SERVER:-}
+      - FIGURE_JIRA_EMAIL=${FIGURE_JIRA_EMAIL:-}
+      - FIGURE_JIRA_API_TOKEN=${FIGURE_JIRA_API_TOKEN:-}
 
     volumes:
       - ./figure-backend/data:/app/data

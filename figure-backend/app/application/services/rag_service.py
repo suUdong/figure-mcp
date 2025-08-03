@@ -80,13 +80,13 @@ class RAGService:
             
             # 소스 문서 포함 (옵션)
             if include_sources:
-            sources = []
+                sources = []
                 for result in search_results:
-                source_info = {
+                    source_info = {
                         "content": result["content"],
                         "metadata": result["metadata"]
-                }
-                sources.append(source_info)
+                    }
+                    sources.append(source_info)
                 response["sources"] = sources
             
             # 사용량 추적

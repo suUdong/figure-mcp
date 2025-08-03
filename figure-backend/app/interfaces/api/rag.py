@@ -79,14 +79,12 @@ async def process_query(
             
             query_time = time.time() - start_time
             
-            # QueryResponse 객체 생성
+            # QueryResponse 객체 생성 (새로운 스키마에 맞게)
             response = QueryResponse(
                 answer=result.get("answer", ""),
                 sources=result.get("sources", []),
-                query=request.query,
                 query_time=query_time,
-                max_results=request.max_results,
-                similarity_threshold=request.similarity_threshold
+                total_results=len(result.get("sources", []))
             )
             
             if response.answer.startswith("처리 중 오류가 발생했습니다"):
