@@ -59,19 +59,28 @@ async def analyze_method_dependency(
     try:
         logger.info(f"메서드 의존성 분석 시작: {request.project_path} ({request.language})")
         
-        # 프로젝트 경로 검증
-        if not os.path.exists(request.project_path):
+        # 프로젝트 경로 검증 (Docker 컨테이너 환경에서 경로 변환 후 검증)  
+        def convert_project_path(project_path: str) -> str:
+            """Docker 컨테이너 환경에서 호스트 경로를 컨테이너 경로로 변환"""
+            if project_path.startswith('C:\\workspace\\figure-mcp') or project_path.startswith('C:/workspace/figure-mcp'):
+                return '/workspace'
+            if project_path.startswith('/'):
+                return project_path
+            return os.path.join('/workspace', project_path.replace('\\', '/'))
+        
+        converted_path = convert_project_path(request.project_path)
+        if not os.path.exists(converted_path):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"프로젝트 경로를 찾을 수 없습니다: {request.project_path}"
+                detail=f"프로젝트 경로를 찾을 수 없습니다: {request.project_path} → {converted_path}"
             )
         
         # 코드 분석 서비스 초기화
         analysis_service = CodeAnalysisService()
         
-        # 의존성 분석 수행
+        # 의존성 분석 수행 (변환된 경로 사용)
         result = await analysis_service.analyze_method_dependencies(
-            project_path=request.project_path,
+            project_path=converted_path,
             language=request.language,
             target_class=request.target_class
         )
@@ -263,8 +272,18 @@ async def detect_circular_dependency(
         dependency_service = DependencyAnalysisService()
         
         # 순환 의존성 분석 수행
+        # Docker 컨테이너 환경에서 경로 변환
+        def convert_project_path(project_path: str) -> str:
+            if project_path.startswith('C:\\workspace\\figure-mcp') or project_path.startswith('C:/workspace/figure-mcp'):
+                return '/workspace'
+            if project_path.startswith('/'):
+                return project_path
+            return os.path.join('/workspace', project_path.replace('\\', '/'))
+        
+        converted_path = convert_project_path(request.project_path)
+        
         result = await dependency_service.detect_circular_dependencies(
-            project_path=request.project_path,
+            project_path=converted_path,
             language=request.language,
             max_depth=request.max_depth
         )
@@ -302,8 +321,18 @@ async def calculate_impact_score(
         dependency_service = DependencyAnalysisService()
         
         # 영향도 점수 계산 수행
+        # Docker 컨테이너 환경에서 경로 변환
+        def convert_project_path(project_path: str) -> str:
+            if project_path.startswith('C:\\workspace\\figure-mcp') or project_path.startswith('C:/workspace/figure-mcp'):
+                return '/workspace'
+            if project_path.startswith('/'):
+                return project_path
+            return os.path.join('/workspace', project_path.replace('\\', '/'))
+        
+        converted_path = convert_project_path(request.project_path)
+        
         result = await dependency_service.calculate_impact_score(
-            project_path=request.project_path,
+            project_path=converted_path,
             target_files=request.target_files,
             change_type=request.change_type,
             language=request.language
@@ -341,9 +370,20 @@ async def generate_comprehensive_impact_report(
         from app.application.services.dependency_analysis_service import DependencyAnalysisService
         dependency_service = DependencyAnalysisService()
         
-        # 종합 리포트 생성 수행
+        # Docker 컨테이너 환경에서 경로 변환
+        def convert_project_path(project_path: str) -> str:
+            """Docker 컨테이너 환경에서 호스트 경로를 컨테이너 경로로 변환"""
+            if project_path.startswith('C:\\workspace\\figure-mcp') or project_path.startswith('C:/workspace/figure-mcp'):
+                return '/workspace'
+            if project_path.startswith('/'):
+                return project_path
+            return os.path.join('/workspace', project_path.replace('\\', '/'))
+        
+        converted_path = convert_project_path(request.project_path)
+        
+        # 종합 리포트 생성 수행 (변환된 경로 사용)
         result = await dependency_service.generate_comprehensive_report(
-            project_path=request.project_path,
+            project_path=converted_path,
             change_description=request.change_description,
             target_modules=request.target_modules,
             language=request.language,

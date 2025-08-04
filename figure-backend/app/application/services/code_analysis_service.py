@@ -34,6 +34,20 @@ class CodeAnalysisService:
             'csharp': ['.cs']
         }
     
+    def _convert_project_path(self, project_path: str) -> str:
+        """Docker 컨테이너 환경에서 호스트 경로를 컨테이너 경로로 변환"""
+        # Windows 경로 패턴 감지 (C:\workspace\figure-mcp)
+        if project_path.startswith('C:\\workspace\\figure-mcp') or project_path.startswith('C:/workspace/figure-mcp'):
+            # Docker 컨테이너 내부의 /workspace로 변환
+            return '/workspace'
+        
+        # Linux 절대 경로인 경우 그대로 사용
+        if project_path.startswith('/'):
+            return project_path
+        
+        # 상대 경로인 경우 /workspace 기준으로 변환
+        return os.path.join('/workspace', project_path.replace('\\', '/'))
+    
     async def analyze_method_dependencies(
         self,
         project_path: str,
@@ -42,13 +56,15 @@ class CodeAnalysisService:
     ) -> Dict[str, Any]:
         """메서드 의존성 분석"""
         try:
-            logger.info(f"코드 분석 시작: {project_path} ({language})")
+            # Docker 컨테이너 환경에서 경로 변환
+            converted_path = self._convert_project_path(project_path)
+            logger.info(f"코드 분석 시작: {project_path} → {converted_path} ({language})")
             
             if language not in self.supported_languages:
                 raise ValueError(f"지원하지 않는 언어: {language}")
             
             # 소스 파일 수집
-            source_files = self._collect_source_files(project_path, language, target_class)
+            source_files = self._collect_source_files(converted_path, language, target_class)
             logger.info(f"분석할 파일 수: {len(source_files)}")
             
             if not source_files:

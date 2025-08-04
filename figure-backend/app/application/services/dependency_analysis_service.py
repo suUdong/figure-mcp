@@ -51,6 +51,20 @@ class DependencyAnalysisService:
             'test_coverage': 0.1          # 테스트 커버리지
         }
     
+    def _convert_project_path(self, project_path: str) -> str:
+        """Docker 컨테이너 환경에서 호스트 경로를 컨테이너 경로로 변환"""
+        # Windows 경로 패턴 감지 (C:\workspace\figure-mcp)
+        if project_path.startswith('C:\\workspace\\figure-mcp') or project_path.startswith('C:/workspace/figure-mcp'):
+            # Docker 컨테이너 내부의 /workspace로 변환
+            return '/workspace'
+        
+        # Linux 절대 경로인 경우 그대로 사용
+        if project_path.startswith('/'):
+            return project_path
+        
+        # 상대 경로인 경우 /workspace 기준으로 변환
+        return os.path.join('/workspace', project_path.replace('\\', '/'))
+    
     async def detect_circular_dependencies(
         self,
         project_path: str,
@@ -59,11 +73,13 @@ class DependencyAnalysisService:
     ) -> Dict[str, Any]:
         """순환 의존성 탐지"""
         try:
-            logger.info(f"순환 의존성 탐지 시작: {project_path}")
+            # Docker 컨테이너 환경에서 경로 변환
+            converted_path = self._convert_project_path(project_path)
+            logger.info(f"순환 의존성 탐지 시작: {project_path} → {converted_path}")
             
             # 메서드 의존성 정보 가져오기
             method_analysis = await self.code_analysis_service.analyze_method_dependencies(
-                project_path, language
+                converted_path, language
             )
             
             if method_analysis['method_count'] == 0:
@@ -110,24 +126,35 @@ class DependencyAnalysisService:
     ) -> Dict[str, Any]:
         """영향도 점수 계산"""
         try:
-            logger.info(f"영향도 점수 계산 시작: {len(target_files)}개 파일")
+            # Docker 컨테이너 환경에서 경로 변환
+            converted_path = self._convert_project_path(project_path)
+            logger.info(f"영향도 점수 계산 시작: {project_path} → {converted_path}, {len(target_files)}개 파일")
             
             # 코드 분석
             method_analysis = await self.code_analysis_service.analyze_method_dependencies(
-                project_path, language
+                converted_path, language
             )
             
             file_scores = []
             total_score = 0
             
             for file_path in target_files:
-                if not os.path.exists(file_path):
-                    logger.warning(f"파일을 찾을 수 없음: {file_path}")
+                # 파일 경로도 변환 - 상대 경로를 절대 경로로 변환
+                if not os.path.isabs(file_path):
+                    converted_file_path = os.path.join(converted_path, file_path)
+                else:
+                    # 이미 절대 경로인 경우 그대로 사용
+                    converted_file_path = file_path
+                
+                logger.info(f"파일 경로 변환: {file_path} → {converted_file_path}")
+                
+                if not os.path.exists(converted_file_path):
+                    logger.warning(f"파일을 찾을 수 없음: {converted_file_path}")
                     continue
                 
                 # 개별 파일 점수 계산
                 score_info = await self._calculate_file_impact_score(
-                    file_path, method_analysis, change_type, project_path
+                    converted_file_path, method_analysis, change_type, converted_path
                 )
                 file_scores.append(score_info)
                 total_score += score_info.score
@@ -180,20 +207,22 @@ class DependencyAnalysisService:
     ) -> Dict[str, Any]:
         """종합 영향도 분석 리포트 생성"""
         try:
-            logger.info(f"종합 리포트 생성 시작: {project_path}")
+            # Docker 컨테이너 환경에서 경로 변환
+            converted_path = self._convert_project_path(project_path)
+            logger.info(f"종합 리포트 생성 시작: {project_path} → {converted_path}")
             
             # 기본 분석들 수행
             impact_result = await self.calculate_impact_score(
-                project_path, target_modules, "modify", language
+                converted_path, target_modules, "modify", language
             )
             
             circular_result = await self.detect_circular_dependencies(
-                project_path, language
+                converted_path, language
             )
             
             # 영향 받는 컴포넌트 분석
             affected_components = await self._analyze_affected_components(
-                project_path, target_modules, language
+                converted_path, target_modules, language
             )
             
             # 리스크 분석
