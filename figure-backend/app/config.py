@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     
     # Provider Configuration (헥사고날 아키텍처)
     llm_provider: str = Field(default="claude", description="LLM 프로바이더")
-    embedding_provider: str = Field(default="gemini", description="임베딩 프로바이더")
+    embedding_provider: str = Field(default="voyage", description="임베딩 프로바이더")
     
     # Anthropic Claude API (기본 LLM 프로바이더)
     claude_api_key: Optional[str] = Field(default=None, description="Anthropic Claude API 키")

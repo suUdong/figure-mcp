@@ -39,7 +39,7 @@ services:
       retries: 3
       start_period: 40s
 
-  # Figure MCP Server
+  # Figure MCP Server (Production Only - 개발시에는 figure-mcp-proxy 사용)
   figure-mcp-server:
     build:
       context: ./figure-mcp-server
@@ -47,16 +47,24 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - NODE_ENV=development
+      - NODE_ENV=production
       - BACKEND_API_URL=http://figure-backend:8001/api
-    volumes:
-      - ./figure-mcp-server:/app
-      - /app/node_modules
+    # volumes: # 운영환경에서는 볼륨 마운트 제거
+    #   - ./figure-mcp-server:/app
+    #   - /app/node_modules
     depends_on:
       figure-backend:
         condition: service_healthy
     networks:
       - figure-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    profiles:
+      - production  # 프로파일 추가로 선택적 실행
 
   # Figure Backend API
   figure-backend:
@@ -78,35 +86,35 @@ services:
       - FIGURE_PORT=8001
 
       # Provider 설정 (헥사고날 아키텍처) - .env 파일에서 참조
-      - FIGURE_LLM_PROVIDER=${FIGURE_LLM_PROVIDER:-claude}
-      - FIGURE_EMBEDDING_PROVIDER=${FIGURE_EMBEDDING_PROVIDER:-voyage}
+      - FIGURE_LLM_PROVIDER=claude
+      - FIGURE_EMBEDDING_PROVIDER=voyage
 
       # Anthropic Claude API Configuration (기본 LLM 프로바이더)
-      - FIGURE_CLAUDE_API_KEY=${FIGURE_CLAUDE_API_KEY}
+      - FIGURE_CLAUDE_API_KEY=sk-test-dummy-key-for-development
       - FIGURE_CLAUDE_MODEL=claude-3-5-sonnet-20241022
       - FIGURE_CLAUDE_MAX_TOKENS=4096
       - FIGURE_CLAUDE_TEMPERATURE=0.1
 
       # Google Gemini API Configuration (임베딩 프로바이더)
-      - FIGURE_GEMINI_API_KEY=${FIGURE_GEMINI_API_KEY}
+      - FIGURE_GEMINI_API_KEY=dummy-gemini-key
       - FIGURE_GEMINI_MODEL=gemini-1.5-flash
       - FIGURE_GEMINI_EMBEDDING_MODEL=models/text-embedding-004
       - FIGURE_GEMINI_MAX_TOKENS=2048
       - FIGURE_GEMINI_TEMPERATURE=0.1
 
       # Groq API Configuration (Optional)
-      - FIGURE_GROQ_API_KEY=${FIGURE_GROQ_API_KEY}
+      - FIGURE_GROQ_API_KEY=dummy-groq-key
       - FIGURE_GROQ_MODEL=llama3-8b-8192
 
-      # OpenAI API Configuration (Optional)
-      - FIGURE_OPENAI_API_KEY=${FIGURE_OPENAI_API_KEY}
+      # OpenAI API Configuration (임시 더미 키)
+      - FIGURE_OPENAI_API_KEY=sk-test-dummy-openai-key-for-development-testing
       - FIGURE_OPENAI_MODEL=gpt-4o-mini
       - FIGURE_OPENAI_EMBEDDING_MODEL=text-embedding-3-large
       - FIGURE_OPENAI_MAX_TOKENS=4096
       - FIGURE_OPENAI_TEMPERATURE=0.1
 
-      # Voyage AI API Configuration (Optional)
-      - FIGURE_VOYAGE_API_KEY=${FIGURE_VOYAGE_API_KEY}
+      # Voyage AI API Configuration (기본 임베딩 프로바이더)
+      - FIGURE_VOYAGE_API_KEY=pa-test-dummy-voyage-key-for-development
       - FIGURE_VOYAGE_EMBEDDING_MODEL=voyage-3-large
 
       # Storage Configuration
@@ -138,6 +146,7 @@ services:
     volumes:
       - ./figure-backend/data:/app/data
       - ./figure-backend/logs:/app/logs
+      - ./backups:/app/backups  # 백업 디렉토리 추가
     depends_on:
       - chroma
     networks:
