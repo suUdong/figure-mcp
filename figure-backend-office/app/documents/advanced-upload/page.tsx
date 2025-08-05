@@ -141,7 +141,7 @@ export default function AdvancedUploadPage() {
                   <Info className="h-4 w-4 text-info-600" />
                 </div>
                 <div>
-                  <p className="font-medium text-gray-900">실시간 진행률</p>
+                  <p className="font-medium text-gray-900">업로드 진행률</p>
                   <p className="text-xs text-gray-500">상세한 진행 상황</p>
                 </div>
               </div>
@@ -214,7 +214,7 @@ export default function AdvancedUploadPage() {
                   <div>
                     <h4 className="font-medium">진행 상황 모니터링</h4>
                     <p className="text-sm text-gray-600">
-                      실시간 진행률과 업로드 상태를 확인하고 필요시 제어하세요
+                      진행률과 업로드 상태를 확인하고 필요시 제어하세요
                     </p>
                   </div>
                 </div>

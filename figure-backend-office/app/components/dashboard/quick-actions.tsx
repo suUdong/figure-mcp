@@ -31,17 +31,25 @@ interface QuickActionProps {
 
 const quickActions: QuickActionProps[] = [
   {
-    title: "실시간 모니터링",
-    description: "시스템 성능과 작업 상태를 실시간으로 확인하세요",
-    icon: Activity,
-    href: "/real-time-dashboard",
+    title: "사이트 관리",
+    description: "새로운 사이트 등록 및 설정 관리",
+    icon: Database,
+    href: "/sites",
     priority: "primary",
-    status: "updated",
     color: "figure",
-    stats: "24/7 모니터링"
+    stats: "8개 사이트"
   },
   {
-    title: "고급 문서 업로드",
+    title: "문서 관리",
+    description: "업로드된 문서를 검색, 조회, 관리합니다",
+    icon: FileText,
+    href: "/documents",
+    priority: "primary",
+    color: "warning",
+    stats: "1,247개 문서"
+  },
+  {
+    title: "문서 업로드",
     description: "드래그앤드롭, 청크 업로드, 일시정지/재개 지원",
     icon: Upload,
     href: "/documents/advanced-upload",
@@ -60,48 +68,7 @@ const quickActions: QuickActionProps[] = [
     color: "info",
     stats: "AI 검색"
   },
-  {
-    title: "문서 관리",
-    description: "업로드된 문서를 검색, 조회, 관리합니다",
-    icon: FileText,
-    href: "/documents",
-    priority: "secondary",
-    color: "warning",
-    stats: "1,247개 문서"
-  },
-  {
-    title: "사이트 관리",
-    description: "새로운 사이트 등록 및 설정 관리",
-    icon: Database,
-    href: "/sites",
-    priority: "secondary",
-    color: "figure",
-    stats: "8개 사이트"
-  },
-  {
-    title: "시스템 설정",
-    description: "사용자 설정 및 시스템 환경 설정",
-    icon: Settings,
-    href: "/settings",
-    priority: "tertiary",
-    color: "success"
-  },
-  {
-    title: "분석 대시보드",
-    description: "사용량 통계 및 성능 분석 리포트",
-    icon: BarChart3,
-    href: "/analytics",
-    priority: "tertiary",
-    color: "info"
-  },
-  {
-    title: "문서 검색",
-    description: "전체 문서에서 빠른 검색 및 필터링",
-    icon: Search,
-    href: "/search",
-    priority: "tertiary",
-    color: "warning"
-  }
+
 ];
 
 function ActionCard({ action }: { action: QuickActionProps }) {

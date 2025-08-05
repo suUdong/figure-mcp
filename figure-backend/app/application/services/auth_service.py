@@ -26,75 +26,93 @@ class AuthService:
         self.jwt_handler = jwt_handler
         self.password_handler = password_handler
     
-    def authenticate_user(self, username: str, password: str) -> Optional[User]:
-        """사용자 인증"""
-        try:
-            with get_db_session() as db:
-                user = db.query(User).filter(User.username == username).first()
-                
-                if not user:
-                    logger.warning(f"존재하지 않는 사용자: {username}")
-                    return None
-                
-                if not user.is_active:
-                    logger.warning(f"비활성 사용자 로그인 시도: {username}")
-                    return None
-                
-                if not self.password_handler.verify_password(password, user.hashed_password):
-                    logger.warning(f"잘못된 패스워드: {username}")
-                    return None
-                
-                # 마지막 로그인 시간 업데이트
-                user.last_login = datetime.utcnow()
-                db.commit()
-                
-                logger.info(f"사용자 인증 성공: {username}")
-                return user
-                
-        except Exception as e:
-            logger.error(f"사용자 인증 중 오류: {e}")
-            return None
+
     
     def login(self, login_request: LoginRequest) -> LoginResponse:
         """로그인 처리"""
-        user = self.authenticate_user(login_request.username, login_request.password)
-        
-        if not user:
+        try:
+            with get_db_session() as db:
+                user = db.query(User).filter(User.username == login_request.username).first()
+                
+                if not user:
+                    logger.warning(f"존재하지 않는 사용자: {login_request.username}")
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="사용자명 또는 비밀번호가 잘못되었습니다",
+                        headers={"WWW-Authenticate": "Bearer"},
+                    )
+                
+                if not user.is_active:
+                    logger.warning(f"비활성 사용자 로그인 시도: {login_request.username}")
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="사용자명 또는 비밀번호가 잘못되었습니다",
+                        headers={"WWW-Authenticate": "Bearer"},
+                    )
+                
+                if not self.password_handler.verify_password(login_request.password, user.hashed_password):
+                    logger.warning(f"잘못된 패스워드: {login_request.username}")
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="사용자명 또는 비밀번호가 잘못되었습니다",
+                        headers={"WWW-Authenticate": "Bearer"},
+                    )
+                
+                # 마지막 로그인 시간 업데이트
+                current_time = datetime.utcnow()
+                user.last_login = current_time
+                db.commit()
+                
+                logger.info(f"사용자 인증 성공: {login_request.username}")
+                
+                # 세션이 닫히기 전에 모든 필요한 데이터를 변수에 저장
+                user_id = user.id
+                username = user.username
+                email = user.email
+                full_name = user.full_name
+                role = user.role
+                is_active = user.is_active
+                created_at = user.created_at
+                last_login = user.last_login
+                
+                # JWT 토큰 생성
+                token_data = {
+                    "sub": str(user_id),
+                    "username": username,
+                    "role": role.value
+                }
+                
+                access_token = self.jwt_handler.create_access_token(token_data)
+                refresh_token = self.jwt_handler.create_refresh_token(token_data)
+                
+                # 사용자 정보 변환 (저장된 변수들 사용)
+                user_info = UserInfo(
+                    id=user_id,
+                    username=username,
+                    email=email,
+                    full_name=full_name,
+                    role=role,
+                    is_active=is_active,
+                    created_at=created_at,
+                    last_login=last_login
+                )
+                
+                return LoginResponse(
+                    access_token=access_token,
+                    refresh_token=refresh_token,
+                    token_type="bearer",
+                    expires_in=self.jwt_handler.access_token_expire_minutes * 60,
+                    user=user_info
+                )
+                
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"로그인 처리 중 오류: {e}")
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="사용자명 또는 비밀번호가 잘못되었습니다",
-                headers={"WWW-Authenticate": "Bearer"},
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="로그인 처리 중 오류가 발생했습니다"
             )
-        
-        # JWT 토큰 생성
-        token_data = {
-            "sub": str(user.id),
-            "username": user.username,
-            "role": user.role.value
-        }
-        
-        access_token = self.jwt_handler.create_access_token(token_data)
-        refresh_token = self.jwt_handler.create_refresh_token(token_data)
-        
-        # 사용자 정보 변환
-        user_info = UserInfo(
-            id=user.id,
-            username=user.username,
-            email=user.email,
-            full_name=user.full_name,
-            role=user.role,
-            is_active=user.is_active,
-            created_at=user.created_at,
-            last_login=user.last_login
-        )
-        
-        return LoginResponse(
-            access_token=access_token,
-            refresh_token=refresh_token,
-            token_type="bearer",
-            expires_in=self.jwt_handler.access_token_expire_minutes * 60,
-            user=user_info
-        )
     
     def refresh_token(self, refresh_request: RefreshTokenRequest) -> LoginResponse:
         """토큰 갱신"""

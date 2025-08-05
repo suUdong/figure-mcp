@@ -242,25 +242,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         role="navigation"
       >
         <div className="flex h-full flex-col">
-          {/* Navigation Header */}
-          <div className="flex-shrink-0 px-4 py-6 border-b border-gray-50">
-            <div className="flex items-center gap-3">
-              <div 
-                className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-figure-500 to-figure-600"
-                aria-hidden="true"
-              >
-                <span className="text-sm font-bold text-white">F</span>
-              </div>
-              <div>
-                <h2 className="text-sm font-semibold text-gray-900">
-                  Navigation
-                </h2>
-                <p className="text-xs text-gray-500">
-                  관리자 메뉴
-                </p>
-              </div>
-            </div>
-          </div>
+
 
           {/* Navigation Menu */}
           <nav 

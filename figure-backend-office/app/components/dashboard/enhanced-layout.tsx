@@ -45,7 +45,7 @@ export default function EnhancedLayout() {
                 시스템 메트릭
               </h2>
               <div className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm text-gray-600 shadow-sm">
-                실시간 업데이트
+                자동 새로고침
               </div>
             </div>
             

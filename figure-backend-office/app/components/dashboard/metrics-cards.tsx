@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useSystemMetrics, useSystemHealth } from '@/hooks/use-admin-stats';
-import { useWebSocket } from '@/hooks/use-websocket';
+
 import { 
   Activity, 
   Database, 
@@ -150,7 +150,7 @@ function MetricCard({
               <div 
                 className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-figure-50 border border-figure-200"
                 role="status"
-                aria-label="실시간 데이터"
+                aria-label="최신 데이터"
               >
                 <Wifi className="w-2.5 h-2.5 text-figure-600" aria-hidden="true" />
                 <span className="text-xs font-medium text-figure-700">Live</span>
@@ -216,7 +216,7 @@ function MetricCard({
 
         {/* Additional accessibility information */}
         <div className="sr-only">
-          {isRealTime && `이 데이터는 실시간으로 업데이트됩니다. `}
+          {isRealTime && `이 데이터는 자동으로 업데이트됩니다. `}
           {change && getTrendDescription()}
           {description && `. ${description}`}
         </div>
@@ -229,11 +229,7 @@ export default function MetricsCards() {
   const { data: metricsData, error: metricsError, isLoading: metricsLoading } = useSystemMetrics();
   const { data: healthData, error: healthError, isLoading: healthLoading } = useSystemHealth();
   
-  const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8001/admin/ws';
-  const { lastMessage, isConnected, error: wsError } = useWebSocket(wsUrl);
 
-  // WebSocket으로부터 받은 실시간 데이터 추출
-  const realTimeMetrics = lastMessage?.metrics || {};
 
   const isSystemHealthy = !healthError && !healthLoading && healthData?.status === 'healthy';
 
@@ -252,30 +248,17 @@ export default function MetricsCards() {
     return model;
   };
 
-  const getMetricStatus = (hasError: boolean, isLoading: boolean, isConnected: boolean): 'healthy' | 'warning' | 'error' | 'loading' => {
+  const getMetricStatus = (hasError: boolean, isLoading: boolean): 'healthy' | 'warning' | 'error' | 'loading' => {
     if (isLoading) return 'loading';
-    if (hasError || !isConnected) return 'error';
+    if (hasError) return 'error';
     return 'healthy';
   };
 
   const metricsCardsData = [
-    {
-      title: '활성 작업',
-      value: realTimeMetrics?.active_jobs?.toLocaleString() || '--',
-      change: {
-        value: 12.5,
-        trend: 'up' as const,
-        timeframe: '지난 시간'
-      },
-      icon: <Activity className="h-5 w-5" />,
-      gradient: 'bg-gradient-to-br from-figure-500 to-figure-600',
-      status: getMetricStatus(!!metricsError, metricsLoading, isConnected) as 'healthy' | 'warning' | 'error' | 'loading',
-      description: '현재 처리 중인 백그라운드 작업',
-      isRealTime: isConnected
-    },
+
     {
       title: '총 문서',
-      value: realTimeMetrics?.total_documents?.toLocaleString() || '0',
+      value: metricsData?.total_documents?.toLocaleString() || '0',
       change: {
         value: 5.2,
         trend: 'up' as const,
@@ -283,13 +266,13 @@ export default function MetricsCards() {
       },
       icon: <FileText className="h-5 w-5" />,
       gradient: 'bg-gradient-to-br from-success-500 to-success-600',
-      status: getMetricStatus(!!metricsError, metricsLoading, isConnected) as 'healthy' | 'warning' | 'error' | 'loading',
+      status: getMetricStatus(!!metricsError, metricsLoading) as 'healthy' | 'warning' | 'error' | 'loading',
       description: '벡터 데이터베이스에 인덱싱된 문서',
-      isRealTime: isConnected
+      isRealTime: false
     },
     {
       title: '등록된 사이트',
-      value: realTimeMetrics?.total_sites || 0,
+      value: metricsData?.total_sites || 0,
       change: {
         value: 0,
         trend: 'neutral' as const,
@@ -297,26 +280,11 @@ export default function MetricsCards() {
       },
       icon: <Database className="h-5 w-5" />,
       gradient: 'bg-gradient-to-br from-info-500 to-info-600',
-      status: getMetricStatus(!!metricsError, metricsLoading, isConnected) as 'healthy' | 'warning' | 'error' | 'loading',
+      status: getMetricStatus(!!metricsError, metricsLoading) as 'healthy' | 'warning' | 'error' | 'loading',
       description: '활성 상태의 사이트 수',
-      isRealTime: isConnected
+      isRealTime: false
     },
-    {
-      title: '시스템 상태',
-      value: isSystemHealthy ? '정상' : '점검 중',
-      change: {
-        value: isSystemHealthy ? 99.9 : 85.2,
-        trend: isSystemHealthy ? 'up' as const : 'down' as const,
-        timeframe: '가동률'
-      },
-      icon: <Server className="h-5 w-5" />,
-      gradient: isSystemHealthy 
-        ? 'bg-gradient-to-br from-success-500 to-success-600'
-        : 'bg-gradient-to-br from-warning-500 to-warning-600',
-      status: (isSystemHealthy ? 'healthy' : 'warning') as 'healthy' | 'warning' | 'error' | 'loading',
-      description: isSystemHealthy ? '모든 서비스가 정상 작동 중' : '일부 서비스 점검 중',
-      isRealTime: isConnected
-    },
+
     {
       title: 'AI 모델',
       value: healthLoading ? 'Loading...' : `${llmProvider.charAt(0).toUpperCase() + llmProvider.slice(1)} + ${embeddingProvider.charAt(0).toUpperCase() + embeddingProvider.slice(1)}`,
@@ -327,8 +295,22 @@ export default function MetricsCards() {
       },
       icon: <Brain className="h-5 w-5" />,
       gradient: 'bg-gradient-to-br from-purple-500 to-purple-600',
-      status: getMetricStatus(!!healthError, healthLoading, true) as 'healthy' | 'warning' | 'error' | 'loading',
+      status: getMetricStatus(!!healthError, healthLoading) as 'healthy' | 'warning' | 'error' | 'loading',
       description: `LLM: ${formatModelName(llmModel)} | 임베딩: ${formatModelName(embeddingModel)}`,
+      isRealTime: false
+    },
+    {
+      title: '총 사용자',
+      value: metricsData?.total_users || '1',
+      change: {
+        value: 0,
+        trend: 'neutral' as const,
+        timeframe: '이번 달'
+      },
+      icon: <Users className="h-5 w-5" />,
+      gradient: 'bg-gradient-to-br from-purple-500 to-purple-600',
+      status: getMetricStatus(!!metricsError, metricsLoading) as 'healthy' | 'warning' | 'error' | 'loading',
+      description: '등록된 관리자 계정 수',
       isRealTime: false
     }
   ];
