@@ -13,8 +13,9 @@ import {
 import { AuthStorage } from "./auth-storage";
 
 // 기본 API 클라이언트 (토큰 없이)
+// Next.js rewrite를 통해 백엔드와 통신 (상대 경로 사용)
 const authApi = axios.create({
-  baseURL: "http://localhost:8001",
+  baseURL: "", // 상대 경로 사용으로 Next.js rewrite 활용
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",
@@ -23,7 +24,7 @@ const authApi = axios.create({
 
 // 인증이 필요한 API 클라이언트 (토큰 포함)
 const authenticatedApi = axios.create({
-  baseURL: "http://localhost:8001",
+  baseURL: "", // 상대 경로 사용으로 Next.js rewrite 활용
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",

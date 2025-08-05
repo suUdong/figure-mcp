@@ -1,0 +1,19 @@
+#!/bin/sh
+
+echo "🚀 Figure Backend Office 시작..."
+
+# Next.js 개발 서버를 백그라운드에서 시작
+echo "📦 Next.js 개발 서버 시작 중..."
+npm run dev &
+SERVER_PID=$!
+
+# 워밍업 스크립트를 백그라운드에서 실행
+echo "🔥 페이지 워밍업 스크립트 백그라운드 실행..."
+(sleep 3 && npm run warmup) &
+WARMUP_PID=$!
+
+# 시그널 핸들러 설정 (graceful shutdown)
+trap 'echo "🛑 서버 종료 중..."; kill $SERVER_PID $WARMUP_PID 2>/dev/null; exit 0' TERM INT
+
+# 서버 프로세스가 실행 중인 동안 대기
+wait $SERVER_PID 

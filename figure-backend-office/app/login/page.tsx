@@ -48,11 +48,6 @@ export default function LoginPage() {
     }
   }, [isAuthenticated, isLoading, router]);
 
-  // 에러 클리어
-  useEffect(() => {
-    clearError();
-  }, [formData, clearError]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -64,8 +59,7 @@ export default function LoginPage() {
 
     try {
       await login(formData);
-      // 로그인 성공 시 메인 페이지로 이동
-      router.push("/");
+      // 로그인 성공 시 메인 페이지로 이동 (useEffect에서 자동 처리됨)
     } catch (error) {
       console.error("로그인 실패:", error);
     } finally {
@@ -74,6 +68,11 @@ export default function LoginPage() {
   };
 
   const handleInputChange = (field: keyof LoginRequest, value: string) => {
+    // 입력값 변경 시 에러 클리어
+    if (error) {
+      clearError();
+    }
+
     setFormData((prev) => ({
       ...prev,
       [field]: value,

@@ -1,11 +1,11 @@
 import axios from "axios";
 import { AuthStorage } from "./auth-storage";
 
-// API 기본 설정 - Docker 환경에 맞춰 수정
+// API 기본 설정 - 백엔드 직접 연결
 const getBaseURL = () => {
-  // 브라우저 환경에서는 프록시를 통해 접근
-  if (typeof window !== 'undefined') {
-    return window.location.origin;
+  // 개발 환경에서는 백엔드에 직접 연결
+  if (typeof window !== "undefined") {
+    return "http://localhost:8001";
   }
   // 서버 사이드에서는 Docker 내부 네트워크 사용
   return process.env.BACKEND_API_URL || "http://figure-backend:8001";
@@ -46,8 +46,10 @@ api.interceptors.response.use(
   },
   async (error) => {
     // 개발 환경에서만 에러 로그 출력
-    if (process.env.NODE_ENV === 'development') {
-      console.error(`[API Error] ${error.response?.status} ${error.config?.url}`);
+    if (process.env.NODE_ENV === "development") {
+      console.error(
+        `[API Error] ${error.response?.status} ${error.config?.url}`
+      );
     }
 
     const originalRequest = error.config;
@@ -83,8 +85,8 @@ api.interceptors.response.use(
             return api(originalRequest);
           }
         } catch (refreshError) {
-          if (process.env.NODE_ENV === 'development') {
-          console.error("토큰 갱신 실패:", refreshError);
+          if (process.env.NODE_ENV === "development") {
+            console.error("토큰 갱신 실패:", refreshError);
           }
           AuthStorage.clearTokens();
 
@@ -178,19 +180,19 @@ export const systemApi = {
   // 시스템 상태 - root level endpoints (프록시 우회하고 직접 백엔드 호출)
   getHealth: () => {
     // 브라우저에서는 직접 백엔드로 요청
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       return axios.get("http://localhost:8001/health", {
         timeout: 5000,
-        headers: { "Content-Type": "application/json" }
+        headers: { "Content-Type": "application/json" },
       });
     }
     return api.get("/health");
   },
   getStatus: () => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       return axios.get("http://localhost:8001/status", {
         timeout: 5000,
-        headers: { "Content-Type": "application/json" }
+        headers: { "Content-Type": "application/json" },
       });
     }
     return api.get("/status");

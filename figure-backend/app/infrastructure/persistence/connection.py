@@ -3,7 +3,7 @@
 """
 
 import os
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import StaticPool
 from typing import Generator
@@ -34,8 +34,9 @@ class DatabaseManager:
         
         self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
         
-        # 테이블 생성
+        # 테이블 생성 및 마이그레이션
         self.create_tables()
+        self.run_migrations()
     
     def create_tables(self):
         """데이터베이스 테이블 생성"""
@@ -47,6 +48,24 @@ class DatabaseManager:
         except Exception as e:
             print(f"❌ Error creating database tables: {e}")
             raise
+    
+    def run_migrations(self):
+        """데이터베이스 마이그레이션 실행"""
+        try:
+            with self.engine.connect() as conn:
+                # Sites 테이블에 business_type 컬럼이 없으면 추가
+                try:
+                    conn.execute(text("SELECT business_type FROM sites LIMIT 1"))
+                except Exception:
+                    # 컬럼이 없으면 추가
+                    conn.execute(text("ALTER TABLE sites ADD COLUMN business_type TEXT"))
+                    conn.commit()
+                    print("✅ Added business_type column to sites table")
+                
+                print("✅ Database migrations completed successfully")
+        except Exception as e:
+            print(f"⚠️  Migration warning (non-critical): {e}")
+            # 마이그레이션 실패는 비중요 오류로 처리
     
     def get_session(self) -> Session:
         """데이터베이스 세션 생성"""

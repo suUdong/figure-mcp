@@ -17,6 +17,12 @@ services:
       - NEXT_TELEMETRY_DISABLED=1
       - WATCHPACK_POLLING=true
       - CHOKIDAR_USEPOLLING=true
+      # Fast Refresh 성능 최적화
+      - FAST_REFRESH=true
+      - WEBPACK_USEPOLLING=1000
+      - WEBPACK_AGGREGATETIMEOUT=200
+      # 페이지 워밍업 활성화
+      - ENABLE_WARMUP=true
     volumes:
       - ./figure-backend-office:/app
       - /app/node_modules
@@ -64,7 +70,7 @@ services:
       timeout: 10s
       retries: 3
     profiles:
-      - production  # 프로파일 추가로 선택적 실행
+      - production # 프로파일 추가로 선택적 실행
 
   # Figure Backend API
   figure-backend:
@@ -146,8 +152,8 @@ services:
     volumes:
       - ./figure-backend/data:/app/data
       - ./figure-backend/logs:/app/logs
-      - ./backups:/app/backups  # 백업 디렉토리 추가
-      - .:/workspace  # 전체 프로젝트 소스 코드 마운팅 (MCP 분석용)
+      - ./backups:/app/backups # 백업 디렉토리 추가
+      - .:/workspace # 전체 프로젝트 소스 코드 마운팅 (MCP 분석용)
     depends_on:
       - chroma
     networks:

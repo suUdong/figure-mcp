@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useSites } from "@/hooks/use-sites";
 import {
   Upload,
   X,
@@ -92,6 +93,9 @@ export default function SimplifiedAdvancedUpload({
   const [tags, setTags] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragCountRef = useRef(0);
+
+  // 사이트 목록 가져오기
+  const { sites, isLoading: sitesLoading } = useSites();
 
   // 드래그 이벤트 핸들러
   const handleDragEnter = useCallback((e: React.DragEvent) => {
@@ -505,13 +509,26 @@ export default function SimplifiedAdvancedUpload({
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="siteId">사이트 ID</Label>
-              <Input
+              <Label htmlFor="siteId">사이트 선택</Label>
+              <select
                 id="siteId"
                 value={siteId}
                 onChange={(e) => setSiteId(e.target.value)}
-                placeholder="선택사항"
-              />
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={sitesLoading}
+              >
+                <option value="">사이트를 선택하세요 (선택사항)</option>
+                {sites?.map((site) => (
+                  <option key={site.id} value={site.id}>
+                    {site.name} - {site.company}
+                  </option>
+                ))}
+              </select>
+              {sitesLoading && (
+                <p className="text-xs text-gray-500 mt-1">
+                  사이트 목록을 불러오는 중...
+                </p>
+              )}
             </div>
             <div>
               <Label htmlFor="tags">태그</Label>

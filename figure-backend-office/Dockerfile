@@ -19,8 +19,13 @@ ENV HOSTNAME="0.0.0.0"
 COPY package.json ./
 RUN npm install
 
+# 엔트리포인트 스크립트 복사 및 실행 권한 부여
+COPY docker-entrypoint.sh /usr/local/bin/
+COPY scripts/ ./scripts/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 # 포트 노출
 EXPOSE 3001
 
-# 개발 서버 실행
-CMD ["npm", "run", "dev"] 
+# 엔트리포인트 설정 (워밍업 포함)
+ENTRYPOINT ["docker-entrypoint.sh"] 

@@ -5,7 +5,15 @@
  * 인증 상태 관리를 위한 Context와 Provider
  */
 
-import React, { createContext, useContext, useReducer, useEffect } from "react";
+import React, {
+  createContext,
+  useContext,
+  useReducer,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
 import { AuthState, AuthContextType, LoginRequest, User } from "@/types/auth";
 import { AuthStorage } from "@/lib/auth-storage";
 import {
@@ -92,37 +100,79 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // Provider 컴포넌트
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(authReducer, initialState);
+  const initializingRef = useRef(false);
 
   // 초기화 - 저장된 토큰으로 사용자 정보 복원
   useEffect(() => {
     const initializeAuth = async () => {
+      // 이미 초기화 중이면 중단 (React Strict Mode 중복 실행 방지)
+      if (initializingRef.current) {
+        return;
+      }
+
+      initializingRef.current = true;
+
       try {
         dispatch({ type: "SET_LOADING", payload: true });
 
-        if (!AuthStorage.hasValidToken()) {
+        // localStorage 사용 가능 여부 확인
+        if (!AuthStorage.isLocalStorageAvailable()) {
           dispatch({ type: "SET_USER", payload: null });
+          initializingRef.current = false;
           return;
         }
 
-        // 토큰이 만료되었지만 리프레시 토큰이 있는 경우
-        if (AuthStorage.isTokenExpired() && AuthStorage.getRefreshToken()) {
+        const accessToken = AuthStorage.getAccessToken();
+        const refreshToken = AuthStorage.getRefreshToken();
+
+        // 토큰이 전혀 없는 경우
+        if (!accessToken && !refreshToken) {
+          dispatch({ type: "SET_USER", payload: null });
+          initializingRef.current = false;
+          return;
+        }
+
+        // 액세스 토큰이 만료되었지만 리프레시 토큰이 있는 경우
+        if (AuthStorage.isTokenExpired() && refreshToken) {
           try {
-            await refreshAccessToken();
+            await Promise.race([
+              refreshAccessToken(),
+              new Promise<void>((_, reject) =>
+                setTimeout(() => reject(new Error("토큰 갱신 타임아웃")), 3000)
+              ),
+            ]);
           } catch (error) {
-            console.warn("토큰 갱신 실패:", error);
             AuthStorage.clearTokens();
             dispatch({ type: "SET_USER", payload: null });
+            initializingRef.current = false;
             return;
           }
         }
 
-        // 사용자 정보 조회
-        const user = await getCurrentUser();
+        // 토큰이 있지만 만료된 경우 (리프레시 토큰도 없음)
+        if (AuthStorage.isTokenExpired() && !refreshToken) {
+          AuthStorage.clearTokens();
+          dispatch({ type: "SET_USER", payload: null });
+          initializingRef.current = false;
+          return;
+        }
+
+        // 사용자 정보 조회 (3초 타임아웃)
+        const user = await Promise.race([
+          getCurrentUser(),
+          new Promise<User>((_, reject) =>
+            setTimeout(
+              () => reject(new Error("사용자 정보 조회 타임아웃")),
+              3000
+            )
+          ),
+        ]);
         dispatch({ type: "SET_USER", payload: user });
       } catch (error) {
-        console.error("인증 초기화 실패:", error);
         AuthStorage.clearTokens();
         dispatch({ type: "SET_USER", payload: null });
+      } finally {
+        initializingRef.current = false;
       }
     };
 
@@ -130,7 +180,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // 로그인 함수
-  const login = async (credentials: LoginRequest) => {
+  const login = useCallback(async (credentials: LoginRequest) => {
     try {
       dispatch({ type: "SET_LOADING", payload: true });
       dispatch({ type: "CLEAR_ERROR" });
@@ -141,10 +191,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       dispatch({ type: "SET_ERROR", payload: error.message });
       throw error;
     }
-  };
+  }, []);
 
   // 로그아웃 함수
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       await apiLogout();
     } catch (error) {
@@ -152,10 +202,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       dispatch({ type: "LOGOUT" });
     }
-  };
+  }, []);
 
   // 토큰 갱신 함수
-  const refreshToken = async () => {
+  const refreshToken = useCallback(async () => {
     try {
       const loginResponse = await refreshAccessToken();
       dispatch({ type: "SET_USER", payload: loginResponse.user });
@@ -164,20 +214,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       dispatch({ type: "LOGOUT" });
       throw error;
     }
-  };
+  }, []);
 
   // 에러 클리어 함수
-  const clearError = () => {
+  const clearError = useCallback(() => {
     dispatch({ type: "CLEAR_ERROR" });
-  };
+  }, []);
 
-  const contextValue: AuthContextType = {
-    ...state,
-    login,
-    logout,
-    refreshToken,
-    clearError,
-  };
+  const contextValue: AuthContextType = useMemo(
+    () => ({
+      ...state,
+      login,
+      logout,
+      refreshToken,
+      clearError,
+    }),
+    [state, login, logout, refreshToken, clearError]
+  );
 
   return (
     <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>

@@ -3,7 +3,7 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import HTMLResponse
 
-from app.domain.entities.schemas import Job, JobUpdate, SystemMetrics, AdminStats, JobStatus, JobType
+from app.domain.entities.schemas import Job, JobUpdate, SystemMetrics, AdminStats, JobStatus, JobType, APIResponse
 from app.application.services.job_service import job_service
 from app.utils.logger import get_logger
 
@@ -146,7 +146,7 @@ async def admin_dashboard():
     """
     return HTMLResponse(content=html_content)
 
-@router.get("/stats", response_model=AdminStats)
+@router.get("/stats", response_model=APIResponse[AdminStats])
 async def get_admin_stats():
     """관리자 통계 정보 조회"""
     try:
@@ -155,21 +155,33 @@ async def get_admin_stats():
         error_summary = job_service.get_error_summary()
         performance_summary = job_service.get_performance_summary()
         
-        return AdminStats(
+        stats = AdminStats(
             system_metrics=system_metrics,
             recent_jobs=recent_jobs,
             error_summary=error_summary,
             performance_summary=performance_summary
         )
+        
+        return APIResponse(
+            success=True,
+            message="관리자 통계 조회 성공",
+            data=stats
+        )
     except Exception as e:
         logger.error(f"관리자 통계 조회 실패: {e}")
         raise HTTPException(status_code=500, detail="통계 정보를 가져올 수 없습니다")
 
-@router.get("/metrics", response_model=SystemMetrics)
+@router.get("/metrics", response_model=APIResponse[SystemMetrics])
 async def get_system_metrics():
     """시스템 메트릭스 조회"""
     try:
-        return job_service.get_system_metrics()
+        metrics = job_service.get_system_metrics()
+        
+        return APIResponse(
+            success=True,
+            message="시스템 메트릭스 조회 성공",
+            data=metrics
+        )
     except Exception as e:
         logger.error(f"시스템 메트릭스 조회 실패: {e}")
         raise HTTPException(status_code=500, detail="시스템 메트릭스를 가져올 수 없습니다")
