@@ -749,6 +749,114 @@ async def search_documents(
 
 
 @router.get(
+    "/",
+    response_model=APIResponse,
+    summary="문서 목록 조회",
+    description="하이브리드 저장 시스템의 문서 목록을 조회합니다. RDB와 Vector DB 저장 상태를 포함합니다."
+)
+async def get_documents(
+    limit: int = 50,
+    offset: int = 0,
+    site_id: str = None,
+    service: object = Depends(get_vector_store_service)
+) -> APIResponse:
+    """
+    문서 목록 조회 (하이브리드 저장 상태 포함)
+    
+    - **limit**: 조회할 문서 수 (기본값: 50)
+    - **offset**: 시작 위치 (기본값: 0) 
+    - **site_id**: 사이트 ID로 필터링 (선택사항)
+    """
+    try:
+        # Vector DB에서 문서 정보 조회
+        collection_info = await service.get_collection_info()
+        
+        # Vector DB의 모든 문서 메타데이터 조회
+        all_results = service._collection.get(
+            limit=limit + offset,
+            include=["metadatas", "documents"],
+            where={"site_id": site_id} if site_id else None
+        )
+        
+        # 문서별로 그룹화 (chunk들을 문서 단위로 집계)
+        documents_map = {}
+        
+        if all_results["metadatas"]:
+            for i, metadata in enumerate(all_results["metadatas"]):
+                doc_id = metadata.get("document_id")
+                if not doc_id:
+                    continue
+                
+                if doc_id not in documents_map:
+                    documents_map[doc_id] = {
+                        "id": doc_id,
+                        "title": metadata.get("title", "제목 없음"),
+                        "filename": metadata.get("original_filename", metadata.get("title", "파일명 없음")),
+                        "type": metadata.get("doc_type", "unknown"),
+                        "site_id": metadata.get("site_id"),
+                        "created_at": metadata.get("created_at"),
+                        "file_size": metadata.get("file_size", 0),
+                        "chunk_count": 0,
+                        "total_chunks": metadata.get("total_chunks", 0),
+                        # 하이브리드 저장 상태
+                        "storage_status": {
+                            "vector_db": True,  # Vector DB에 있으므로 True
+                            "rdb": False,  # 기본값, 아래에서 확인
+                            "file_storage": False  # 기본값, 아래에서 확인
+                        }
+                    }
+                
+                documents_map[doc_id]["chunk_count"] += 1
+        
+        # 문서 목록 생성
+        documents_list = list(documents_map.values())[offset:offset+limit]
+        
+        # 각 문서의 RDB 및 파일 저장 상태 확인
+        for doc in documents_list:
+            # 파일 저장 상태 확인 (파일 시스템)
+            if doc.get("file_path"):
+                doc["storage_status"]["file_storage"] = os.path.exists(doc["file_path"])
+            
+            # RDB 저장 상태 확인 (템플릿 테이블 확인)
+            # 현재는 템플릿만 RDB에 저장되므로, 템플릿 여부로 판단
+            # TODO: 실제 RDB 문서 테이블이 있다면 여기서 확인
+            doc["storage_status"]["rdb"] = False  # 임시로 False
+            
+            # 저장 상태 요약
+            storage_count = sum([
+                doc["storage_status"]["vector_db"],
+                doc["storage_status"]["rdb"], 
+                doc["storage_status"]["file_storage"]
+            ])
+            doc["storage_status"]["total_storages"] = storage_count
+            doc["storage_status"]["is_complete"] = storage_count >= 2  # Vector DB + 파일 저장이면 완전한 상태
+        
+        return APIResponse(
+            success=True,
+            message="문서 목록 조회 성공",
+            data={
+                "documents": documents_list,
+                "total_count": len(documents_map),
+                "returned_count": len(documents_list),
+                "offset": offset,
+                "limit": limit,
+                "collection_info": {
+                    "total_chunks": collection_info.get("total_chunks", 0),
+                    "total_sites": collection_info.get("total_sites", 0),
+                    "document_types": collection_info.get("document_types", {})
+                }
+            }
+        )
+        
+    except Exception as e:
+        logger.error(f"문서 목록 조회 실패: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"문서 목록 조회 실패: {str(e)}"
+        )
+
+
+@router.get(
     "/stats",
     response_model=APIResponse,
     summary="문서 통계",

@@ -24,9 +24,11 @@ RUN pip install debugpy
 # ====================
 FROM python:3.11-slim AS production
 
-# 런타임 의존성만 설치
+# 런타임 의존성 및 CA 인증서 업데이트
 RUN apt-get update && apt-get install -y \
     curl \
+    ca-certificates \
+    && update-ca-certificates \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get autoremove -y \
     && apt-get clean

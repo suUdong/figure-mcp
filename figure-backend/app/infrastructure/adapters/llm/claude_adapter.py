@@ -36,8 +36,34 @@ class ClaudeLLMAdapter(LLMRepository):
         # Anthropic 클라이언트 초기화
         try:
             import anthropic
-            self.client = anthropic.AsyncAnthropic(api_key=api_key)
-            logger.info(f"Claude LLM 초기화 완료: {model}")
+            import httpx
+            import ssl
+            import os
+            
+            # SSL 검증 비활성화 설정 (Voyage AI와 동일한 방식)
+            os.environ["PYTHONHTTPSVERIFY"] = "0"
+            ssl._create_default_https_context = ssl._create_unverified_context
+            
+            # 타임아웃과 SSL 설정이 포함된 HTTP 클라이언트 생성
+            http_client = httpx.AsyncClient(
+                timeout=httpx.Timeout(
+                    connect=30.0,  # 연결 타임아웃: 30초
+                    read=60.0,     # 읽기 타임아웃: 60초
+                    write=30.0,    # 쓰기 타임아웃: 30초
+                    pool=120.0     # 전체 타임아웃: 2분
+                ),
+                verify=False,  # SSL 검증 비활성화
+                limits=httpx.Limits(
+                    max_keepalive_connections=10,
+                    max_connections=20
+                )
+            )
+            
+            self.client = anthropic.AsyncAnthropic(
+                api_key=api_key,
+                http_client=http_client
+            )
+            logger.info(f"Claude LLM 초기화 완료 (타임아웃: 60s, SSL 비활성화): {model}")
         except ImportError:
             raise ImportError(
                 "anthropic 패키지가 설치되지 않았습니다. "

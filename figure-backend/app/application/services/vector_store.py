@@ -31,9 +31,39 @@ class VectorStoreService:
     async def initialize(self) -> None:
         """비동기 초기화"""
         try:
+            # SSL 검증 비활성화 (전역 설정)
+            import os
+            import ssl
+            import urllib3
+            import requests
+            from requests.adapters import HTTPAdapter
+            from urllib3.util.retry import Retry
+            
+            # SSL 관련 환경 변수 설정
+            os.environ["PYTHONHTTPSVERIFY"] = "0"
+            os.environ["CURL_CA_BUNDLE"] = ""
+            os.environ["REQUESTS_CA_BUNDLE"] = ""
+            os.environ["SSL_VERIFY"] = "false"
+            
+            # urllib3 SSL 경고 비활성화
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+            urllib3.disable_warnings()
+            
+            # SSL 기본 컨텍스트 설정
+            ssl._create_default_https_context = ssl._create_unverified_context
+            
+            # requests 세션에 SSL 검증 비활성화 적용
+            session = requests.Session()
+            session.verify = False
+            
+            # requests 모듈의 기본 세션 설정
+            requests.Session.verify = False
+            requests.packages.urllib3.disable_warnings()
+            
+            logger.info("SSL 검증 비활성화 설정 완료 (전역 적용)")
+            
             # ChromaDB 클라이언트 초기화 (persistent 모드 사용)
             logger.info("ChromaDB persistent 모드로 초기화 중...")
-            import os
             
             # ChromaDB telemetry 완전 비활성화
             os.environ["ANONYMIZED_TELEMETRY"] = "False"

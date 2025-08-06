@@ -402,6 +402,12 @@ export default function SimplifiedAdvancedUpload({
 
   // 전체 업로드
   const uploadAllFiles = useCallback(async () => {
+    // 사이트 선택 필수 검증
+    if (!siteId) {
+      alert("MCP 문서 생성 요청에 필요한 사이트를 선택해주세요.");
+      return;
+    }
+
     const pendingFiles = files.filter((f) => f.status === "idle");
     setIsUploading(true);
 
@@ -413,7 +419,7 @@ export default function SimplifiedAdvancedUpload({
     } finally {
       setIsUploading(false);
     }
-  }, [files, uploadFile, onAllComplete]);
+  }, [files, uploadFile, onAllComplete, siteId]);
 
   // 유틸리티 함수들
   const formatFileSize = (bytes: number): string => {
@@ -509,15 +515,22 @@ export default function SimplifiedAdvancedUpload({
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="siteId">사이트 선택</Label>
+              <Label htmlFor="siteId" className="flex items-center gap-1">
+                사이트 선택 
+                <span className="text-red-500">*</span>
+              </Label>
               <select
                 id="siteId"
                 value={siteId}
                 onChange={(e) => setSiteId(e.target.value)}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                className={cn(
+                  "flex h-10 w-full rounded-md border px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+                  !siteId ? "border-red-300 bg-red-50" : "border-input bg-background"
+                )}
                 disabled={sitesLoading}
+                required
               >
-                <option value="">사이트를 선택하세요 (선택사항)</option>
+                <option value="">사이트를 선택하세요 (필수)</option>
                 {sites?.map((site) => (
                   <option key={site.id} value={site.id}>
                     {site.name} - {site.company}
@@ -527,6 +540,11 @@ export default function SimplifiedAdvancedUpload({
               {sitesLoading && (
                 <p className="text-xs text-gray-500 mt-1">
                   사이트 목록을 불러오는 중...
+                </p>
+              )}
+              {!siteId && (
+                <p className="text-xs text-red-600 mt-1">
+                  MCP 문서 생성 요청 시 필요한 키값입니다. 반드시 선택해주세요.
                 </p>
               )}
             </div>
@@ -646,9 +664,10 @@ export default function SimplifiedAdvancedUpload({
               <div className="flex items-center space-x-2">
                 <Button
                   onClick={uploadAllFiles}
-                  disabled={isUploading || stats.pending === 0}
+                  disabled={isUploading || stats.pending === 0 || !siteId}
                   size="sm"
                   className="flex items-center space-x-2"
+                  title={!siteId ? "사이트를 선택해주세요" : undefined}
                 >
                   <Play className="h-4 w-4" />
                   <span>전체 업로드</span>

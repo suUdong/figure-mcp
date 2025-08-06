@@ -60,17 +60,23 @@ async def process_query(
             job_service.update_job(job.id, JobUpdate(
                 status=JobStatus.PROCESSING,
                 progress=20.0,
-                message="문서 검색 중..."
-            ))
-            
-            # 진행 상태 업데이트: RAG 처리 중
-            job_service.update_job(job.id, JobUpdate(
-                progress=60.0,
-                message="AI 응답 생성 중..."
+                message="문서 검색 및 컨텍스트 준비 중..."
             ))
             
             # RAG 질의 처리 (QueryRequest를 적절한 파라미터로 변환)
             start_time = time.time()
+            
+            # 진행 상태 업데이트: RAG 처리 시작
+            job_service.update_job(job.id, JobUpdate(
+                progress=40.0,
+                message="벡터 검색 중..."
+            ))
+            
+            # 진행 상태 업데이트: AI 응답 생성 시작
+            job_service.update_job(job.id, JobUpdate(
+                progress=60.0,
+                message="AI 응답 생성 중..."
+            ))
             
             result = await service.query(
                 question=request.query,
@@ -78,6 +84,12 @@ async def process_query(
             )
             
             query_time = time.time() - start_time
+            
+            # 진행 상태 업데이트: 응답 처리 중
+            job_service.update_job(job.id, JobUpdate(
+                progress=90.0,
+                message="응답 처리 중..."
+            ))
             
             # QueryResponse 객체 생성 (새로운 스키마에 맞게)
             response = QueryResponse(

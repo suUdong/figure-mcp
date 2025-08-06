@@ -89,11 +89,12 @@ class Settings(BaseSettings):
         """사용하는 프로바이더의 API 키 검증"""
         import os
         
-        # 테스트 환경이거나 개발 환경에서는 검증 스킵
+        # 테스트 환경에서만 더미 키 설정 (매우 제한적으로)
         env = os.getenv("ENVIRONMENT", "").lower()
         debug = os.getenv("FIGURE_DEBUG", "").lower() in ("true", "1")
         
-        if env in ("test", "development") or debug or "pytest" in os.getenv("_", ""):
+        # pytest 실행 중일 때만 테스트용 더미 키 사용
+        if "pytest" in os.getenv("_", "") or env == "test":
             # 테스트용 기본값 설정
             if not self.gemini_api_key:
                 object.__setattr__(self, 'gemini_api_key', 'test-key')
@@ -131,8 +132,8 @@ class Settings(BaseSettings):
         
         if self.embedding_provider == "voyage":
             if not self.voyage_api_key:
-                print("⚠️  Warning: FIGURE_VOYAGE_API_KEY not set, using default")
-                object.__setattr__(self, 'voyage_api_key', 'default-key')
+                print("⚠️  Warning: FIGURE_VOYAGE_API_KEY not set")
+                # API 키가 없으면 에러를 발생시키지 말고 None으로 유지
         
         return self
     

@@ -95,32 +95,27 @@ services:
       - FIGURE_LLM_PROVIDER=claude
       - FIGURE_EMBEDDING_PROVIDER=voyage
 
-      # Anthropic Claude API Configuration (기본 LLM 프로바이더)
-      - FIGURE_CLAUDE_API_KEY=sk-test-dummy-key-for-development
+      # Anthropic Claude API Configuration (기본 LLM 프로바이더) - .env 파일에서 참조
       - FIGURE_CLAUDE_MODEL=claude-3-5-sonnet-20241022
       - FIGURE_CLAUDE_MAX_TOKENS=4096
       - FIGURE_CLAUDE_TEMPERATURE=0.1
 
-      # Google Gemini API Configuration (임베딩 프로바이더)
-      - FIGURE_GEMINI_API_KEY=dummy-gemini-key
+      # Google Gemini API Configuration (임베딩 프로바이더) - .env 파일에서 참조
       - FIGURE_GEMINI_MODEL=gemini-1.5-flash
       - FIGURE_GEMINI_EMBEDDING_MODEL=models/text-embedding-004
       - FIGURE_GEMINI_MAX_TOKENS=2048
       - FIGURE_GEMINI_TEMPERATURE=0.1
 
-      # Groq API Configuration (Optional)
-      - FIGURE_GROQ_API_KEY=dummy-groq-key
+      # Groq API Configuration (Optional) - .env 파일에서 참조
       - FIGURE_GROQ_MODEL=llama3-8b-8192
 
-      # OpenAI API Configuration (임시 더미 키)
-      - FIGURE_OPENAI_API_KEY=sk-test-dummy-openai-key-for-development-testing
+      # OpenAI API Configuration - .env 파일에서 참조
       - FIGURE_OPENAI_MODEL=gpt-4o-mini
       - FIGURE_OPENAI_EMBEDDING_MODEL=text-embedding-3-large
       - FIGURE_OPENAI_MAX_TOKENS=4096
       - FIGURE_OPENAI_TEMPERATURE=0.1
 
-      # Voyage AI API Configuration (기본 임베딩 프로바이더)
-      - FIGURE_VOYAGE_API_KEY=pa-test-dummy-voyage-key-for-development
+      # Voyage AI API Configuration (기본 임베딩 프로바이더) - .env 파일에서 참조
       - FIGURE_VOYAGE_EMBEDDING_MODEL=voyage-3-large
 
       # Storage Configuration

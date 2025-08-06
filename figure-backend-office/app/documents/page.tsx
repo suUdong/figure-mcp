@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useDocuments } from '@/hooks/use-documents'
+import SimplifiedAdvancedUpload from '@/components/documents/simplified-advanced-upload'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -46,6 +47,7 @@ export default function DocumentsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null)
   const [showViewModal, setShowViewModal] = useState(false)
+  const [showUploadModal, setShowUploadModal] = useState(false)
   const [viewMode, setViewMode] = useState<ViewMode>('list')
   const [sortField, setSortField] = useState<SortField>('date')
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
@@ -162,6 +164,54 @@ export default function DocumentsPage() {
     }
   }
 
+  const getStorageStatusBadges = (storageStatus: any) => {
+    if (!storageStatus) return null;
+    
+    return (
+      <div className="flex flex-wrap gap-1">
+        {/* Vector DB 상태 */}
+        <Badge 
+          variant={storageStatus.vector_db ? "default" : "secondary"}
+          className={`text-xs ${storageStatus.vector_db ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-600"}`}
+        >
+          <Database className="h-3 w-3 mr-1" />
+          Vector
+        </Badge>
+        
+        {/* RDB 상태 */}
+        <Badge 
+          variant={storageStatus.rdb ? "default" : "secondary"}
+          className={`text-xs ${storageStatus.rdb ? "bg-green-500 text-white" : "bg-gray-200 text-gray-600"}`}
+        >
+          <Database className="h-3 w-3 mr-1" />
+          RDB
+        </Badge>
+        
+        {/* 파일 저장 상태 */}
+        <Badge 
+          variant={storageStatus.file_storage ? "default" : "secondary"}
+          className={`text-xs ${storageStatus.file_storage ? "bg-purple-500 text-white" : "bg-gray-200 text-gray-600"}`}
+        >
+          <FileText className="h-3 w-3 mr-1" />
+          File
+        </Badge>
+        
+        {/* 전체 상태 표시 */}
+        <Badge 
+          variant={storageStatus.is_complete ? "default" : "destructive"}
+          className={`text-xs ${storageStatus.is_complete ? "bg-emerald-500 text-white" : "bg-red-500 text-white"}`}
+        >
+          {storageStatus.is_complete ? (
+            <CheckCircle className="h-3 w-3 mr-1" />
+          ) : (
+            <AlertCircle className="h-3 w-3 mr-1" />
+          )}
+          {storageStatus.total_storages}/3
+        </Badge>
+      </div>
+    );
+  };
+
   const getStatusBadge = (status: string) => {
     const statusConfig = {
       'processed': { 
@@ -208,6 +258,21 @@ export default function DocumentsPage() {
 
   const activeFiltersCount = Object.values(filters).filter(value => value !== 'all').length
 
+  // 업로드 관련 핸들러
+  const handleUploadComplete = () => {
+    refetch() // 문서 목록 새로고침
+  }
+
+  const handleUploadError = (error: any) => {
+    console.error('업로드 오류:', error)
+  }
+
+  const handleAllComplete = (files: any[]) => {
+    console.log('모든 파일 업로드 완료:', files)
+    setShowUploadModal(false) // 모달 닫기
+    refetch() // 문서 목록 새로고침
+  }
+
   return (
     <MainLayout>
       <div className="space-y-6">
@@ -224,7 +289,11 @@ export default function DocumentsPage() {
               <span className="hidden sm:inline">새로고침</span>
             </Button>
             
-            <Button size="sm" className="flex items-center gap-2 bg-figure-500 hover:bg-figure-600">
+            <Button 
+              size="sm" 
+              onClick={() => setShowUploadModal(true)}
+              className="flex items-center gap-2 bg-figure-500 hover:bg-figure-600"
+            >
               <Upload className="h-4 w-4" />
               <span>문서 업로드</span>
             </Button>
@@ -433,7 +502,10 @@ export default function DocumentsPage() {
                     }
                   </p>
                   {documents?.length === 0 ? (
-                    <Button className="bg-figure-500 hover:bg-figure-600">
+                    <Button 
+                      onClick={() => setShowUploadModal(true)}
+                      className="bg-figure-500 hover:bg-figure-600"
+                    >
                       <Plus className="h-4 w-4 mr-2" />
                       문서 업로드
                     </Button>
@@ -488,6 +560,12 @@ export default function DocumentsPage() {
                         </div>
                         
                         <div className="flex items-center gap-3">
+                          {/* 하이브리드 저장 상태 표시 */}
+                          <div className="flex flex-col gap-1">
+                            <div className="text-xs text-gray-500">저장 상태:</div>
+                            {getStorageStatusBadges(document.storage_status)}
+                          </div>
+                          
                           {getStatusBadge(document.status)}
                           
                           <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-200">
@@ -553,6 +631,14 @@ export default function DocumentsPage() {
                       
                       <div className="flex justify-center mt-3">
                         {getStatusBadge(document.status)}
+                      </div>
+                      
+                      {/* 하이브리드 저장 상태 표시 (Grid View) */}
+                      <div className="flex justify-center mt-2">
+                        <div className="text-center">
+                          <div className="text-xs text-gray-500 mb-1">저장 상태</div>
+                          {getStorageStatusBadges(document.storage_status)}
+                        </div>
                       </div>
                       
                       <div className="flex justify-center gap-1 mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -654,6 +740,38 @@ export default function DocumentsPage() {
                     닫기
                   </Button>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Upload Modal */}
+        {showUploadModal && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-bold text-gray-900">문서 업로드</h2>
+                  <Button
+                    onClick={() => setShowUploadModal(false)}
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                
+                {/* 업로드 컴포넌트 */}
+                <SimplifiedAdvancedUpload
+                  maxFiles={10}
+                  maxSize={100 * 1024 * 1024} // 100MB
+                  autoUpload={false}
+                  showPreview={true}
+                  onUploadComplete={handleUploadComplete}
+                  onUploadError={handleUploadError}
+                  onAllComplete={handleAllComplete}
+                />
               </div>
             </div>
           </div>

@@ -19,13 +19,33 @@ ENV HOSTNAME="0.0.0.0"
 COPY package.json ./
 RUN npm install
 
-# 엔트리포인트 스크립트 복사 및 실행 권한 부여
-COPY docker-entrypoint.sh /usr/local/bin/
+# 스크립트 디렉토리 복사 (존재하는 경우)
 COPY scripts/ ./scripts/
+
+# 엔트리포인트 스크립트 복사 및 권한 설정 (존재하는 경우)
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# 조건부 엔트리포인트 스크립트 생성 (중복 실행 방지)
+RUN echo '#!/bin/sh' > /usr/local/bin/conditional-entrypoint.sh && \
+    echo 'echo "🔍 엔트리포인트 파일 확인 중..."' >> /usr/local/bin/conditional-entrypoint.sh && \
+    echo 'if [ -f "/usr/local/bin/docker-entrypoint.sh" ] && [ -x "/usr/local/bin/docker-entrypoint.sh" ]; then' >> /usr/local/bin/conditional-entrypoint.sh && \
+    echo '  echo "🚀 docker-entrypoint.sh 파일을 찾았습니다. 실행합니다..."' >> /usr/local/bin/conditional-entrypoint.sh && \
+    echo '  # Windows 줄바꿈 문자 제거 (CRLF → LF)' >> /usr/local/bin/conditional-entrypoint.sh && \
+    echo '  sed -i "s/\r$//" /usr/local/bin/docker-entrypoint.sh' >> /usr/local/bin/conditional-entrypoint.sh && \
+    echo '  exec /usr/local/bin/docker-entrypoint.sh "$@"' >> /usr/local/bin/conditional-entrypoint.sh && \
+    echo 'else' >> /usr/local/bin/conditional-entrypoint.sh && \
+    echo '  echo "⚠️  docker-entrypoint.sh 파일을 찾을 수 없습니다. 기본 모드로 시작합니다."' >> /usr/local/bin/conditional-entrypoint.sh && \
+    echo '  echo "📦 기본 Next.js 개발 서버를 시작합니다..."' >> /usr/local/bin/conditional-entrypoint.sh && \
+    echo '  trap '\''echo "🛑 서버 종료 중..."; kill $SERVER_PID 2>/dev/null; exit 0'\'' TERM INT' >> /usr/local/bin/conditional-entrypoint.sh && \
+    echo '  npm run dev &' >> /usr/local/bin/conditional-entrypoint.sh && \
+    echo '  SERVER_PID=$!' >> /usr/local/bin/conditional-entrypoint.sh && \
+    echo '  wait $SERVER_PID' >> /usr/local/bin/conditional-entrypoint.sh && \
+    echo 'fi' >> /usr/local/bin/conditional-entrypoint.sh && \
+    chmod +x /usr/local/bin/conditional-entrypoint.sh
 
 # 포트 노출
 EXPOSE 3001
 
-# 엔트리포인트 설정 (워밍업 포함)
-ENTRYPOINT ["docker-entrypoint.sh"] 
+# 조건부 엔트리포인트 설정
+ENTRYPOINT ["/usr/local/bin/conditional-entrypoint.sh"] 
