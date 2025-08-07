@@ -253,9 +253,33 @@ class FigureMcpServer {
                   type: "string",
                   enum: ["mysql", "postgresql", "oracle", "mssql", "sqlite"],
                   description: "데이터베이스 타입 (includeDatabase가 true일 때 필수)"
+                },
+                siteId: {
+                  type: "string",
+                  description: "사이트 ID (템플릿 매칭용)",
+                  default: null
                 }
               },
               required: ["projectPath", "changeDescription", "targetModules", "language"]
+            }
+          },
+          {
+            name: "get_document_template",
+            description: "문서 타입에 맞는 템플릿을 SQLite에서 조회합니다.",
+            inputSchema: {
+              type: "object",
+              properties: {
+                documentType: {
+                  type: "string",
+                  enum: ["impact_analysis", "requirements_doc", "api_documentation", "deployment_guide", "test_plan", "technical_spec", "user_manual", "release_notes"],
+                  description: "문서 타입"
+                },
+                siteId: {
+                  type: "string",
+                  description: "사이트 ID (선택사항)"
+                }
+              },
+              required: ["documentType"]
             }
           }
         ]
@@ -294,6 +318,9 @@ class FigureMcpServer {
             
           case "comprehensive_impact_report":
             return await this.handleComprehensiveImpactReport(args as any);
+            
+          case "get_document_template":
+            return await this.handleGetDocumentTemplate(args as any);
             
           default:
             throw new Error(`Unknown tool: ${name}`);
@@ -989,11 +1016,15 @@ ${scoreResult.recommendations.map((rec: string) => `• ${rec}`).join('\n')}
     language: string;
     includeDatabase?: boolean;
     databaseType?: string;
+    siteId?: string;  // 사이트 ID 추가
   }) {
     try {
       logger.info('종합 영향도 분석 리포트 생성 요청', args);
       
-      // 백엔드 API 호출
+      // 1. 먼저 영향도 분석 템플릿 조회 시도
+      const templateMatch = await backendClient.getMatchingTemplate('impact_analysis', args.siteId);
+      
+      // 2. 백엔드 API 호출 (기존 분석 로직)
       const reportResult = await backendClient.generateComprehensiveImpactReport(
         args.projectPath,
         args.changeDescription,
@@ -1031,10 +1062,8 @@ ${scoreResult.recommendations.map((rec: string) => `• ${rec}`).join('\n')}
       const riskIcon = overallRisk === "높음" ? "🔴" : 
                       overallRisk === "보통" ? "🟡" : "🟢";
 
-      return {
-        content: [{
-          type: "text",
-          text: `📋 **종합 영향도 분석 리포트**
+      // 3. 템플릿이 있는 경우 템플릿 포함해서 응답 생성
+      let responseText = `📋 **종합 영향도 분석 리포트**
 
 ## 📊 변경 개요
 - **프로젝트**: ${args.projectPath}
@@ -1079,8 +1108,36 @@ ${reportResult.checklist.map((item: any) =>
   `- [ ] **${item.category}**: ${item.task}`
 ).join('\n')}
 
----
-💡 **이 리포트를 영향도 분석서 템플릿에 활용하여 완전한 문서를 작성하세요.**`
+---`;
+
+      // 템플릿 매칭 결과에 따라 추가 정보 포함
+      if (templateMatch && templateMatch.template) {
+        responseText += `
+## 📄 **매칭된 영향도 분석서 템플릿**
+
+**템플릿 정보:**
+- **이름**: ${templateMatch.template.name}
+- **설명**: ${templateMatch.template.description || '설명 없음'}
+- **사이트**: ${templateMatch.template.site_id || '전체'}
+- **타입**: ${templateMatch.templateType}
+
+**템플릿 내용:**
+\`\`\`markdown
+${templateMatch.template.content || '템플릿 내용이 비어있습니다.'}
+\`\`\`
+
+💡 **위의 분석 결과를 아래 템플릿에 적용하여 완전한 영향도 분석서를 작성하세요.**
+📋 **SQLite에서 가져온 정형화된 템플릿을 사용하여 일관성 있는 문서를 생성할 수 있습니다.**`;
+      } else {
+        responseText += `
+💡 **이 리포트를 영향도 분석서 템플릿에 활용하여 완전한 문서를 작성하세요.**
+⚠️ **매칭되는 영향도 분석서 템플릿이 없습니다. 먼저 템플릿을 업로드해주세요.**`;
+      }
+
+      return {
+        content: [{
+          type: "text",
+          text: responseText
         }]
       };
 
@@ -1093,6 +1150,94 @@ ${reportResult.checklist.map((item: any) =>
 
 📋 프로젝트: ${args.projectPath}
 📝 변경 사항: ${args.changeDescription}`
+        }],
+        isError: true
+      };
+    }
+  }
+
+  private async handleGetDocumentTemplate(args: {
+    documentType: string;
+    siteId?: string;
+  }) {
+    try {
+      logger.info('문서 템플릿 조회 요청', args);
+      
+      // 백엔드에서 템플릿 매칭
+      const templateMatch = await backendClient.getMatchingTemplate(args.documentType, args.siteId);
+      
+      if (!templateMatch || !templateMatch.template) {
+        return {
+          content: [{
+            type: "text",
+            text: `⚠️ **템플릿을 찾을 수 없습니다**
+
+📋 **요청 정보:**
+- **문서 타입**: ${args.documentType}
+- **사이트 ID**: ${args.siteId || '전체'}
+
+💡 **해결 방법:**
+1. 해당 문서 타입의 템플릿을 먼저 업로드해주세요
+2. 사이트별 템플릿이 필요한 경우 사이트 ID를 확인해주세요
+3. 관리자 페이지에서 템플릿 목록을 확인해보세요
+
+🔧 **지원하는 문서 타입:**
+- impact_analysis (영향도 분석서)
+- requirements_doc (요구사항 정의서)
+- api_documentation (API 문서)
+- deployment_guide (배포 가이드)
+- test_plan (테스트 계획서)
+- technical_spec (기술 명세서)
+- user_manual (사용자 매뉴얼)
+- release_notes (릴리즈 노트)`
+          }]
+        };
+      }
+
+      const template = templateMatch.template;
+      
+      return {
+        content: [{
+          type: "text",
+          text: `📄 **${args.documentType} 템플릿 조회 성공**
+
+## 📋 템플릿 정보
+- **이름**: ${template.name}
+- **설명**: ${template.description || '설명 없음'}
+- **타입**: ${templateMatch.templateType}
+- **사이트**: ${template.site_id || '전체 사이트'}
+- **생성일**: ${template.created_at ? new Date(template.created_at).toLocaleString('ko-KR') : '정보 없음'}
+- **기본 템플릿**: ${template.is_default ? 'Yes' : 'No'}
+
+## 📝 템플릿 내용
+
+\`\`\`markdown
+${template.content || '템플릿 내용이 비어있습니다.'}
+\`\`\`
+
+---
+💡 **이 템플릿을 사용하여 ${args.documentType} 문서를 작성하세요.**
+🔄 **SQLite에서 가져온 정형화된 템플릿으로 일관성 있는 문서를 생성할 수 있습니다.**`
+        }]
+      };
+
+    } catch (error) {
+      logger.error('문서 템플릿 조회 처리 중 오류', error);
+      return {
+        content: [{
+          type: "text",
+          text: `❌ 문서 템플릿 조회 처리 중 오류가 발생했습니다: ${error instanceof Error ? error.message : '알 수 없는 오류'}
+
+📋 **요청 정보:**
+- **문서 타입**: ${args.documentType}
+- **사이트 ID**: ${args.siteId || '전체'}
+
+🔧 **가능한 원인:**
+- 백엔드 서버 연결 실패
+- 데이터베이스 접근 오류
+- 템플릿 서비스 장애
+
+💡 관리자에게 문의하거나 잠시 후 다시 시도해보세요.`
         }],
         isError: true
       };

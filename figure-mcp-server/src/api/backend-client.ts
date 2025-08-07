@@ -397,6 +397,145 @@ export class BackendApiClient {
       return null;
     }
   }
+
+  /**
+   * 타입별 템플릿 조회 (MCP 매칭용)
+   */
+  async getTemplatesByType(
+    templateType: string,
+    siteId?: string,
+    limit: number = 10
+  ): Promise<any[] | null> {
+    try {
+      logger.info('타입별 템플릿 조회 요청', { templateType, siteId, limit });
+      
+      const params = new URLSearchParams();
+      if (siteId) params.append('site_id', siteId);
+      if (limit) params.append('limit', limit.toString());
+      
+      const queryString = params.toString();
+      const url = `/api/templates/by-type/${templateType}${queryString ? `?${queryString}` : ''}`;
+      
+      const response = await this.client.get(url);
+      
+      if (response.data.success) {
+        return response.data.data || [];
+      } else {
+        logger.warn('타입별 템플릿 조회 실패', response.data.message);
+        return null;
+      }
+    } catch (error) {
+      logger.error('타입별 템플릿 조회 오류', { 
+        templateType, siteId, limit, error 
+      });
+      return null;
+    }
+  }
+
+  /**
+   * MCP 요청 타입에 따른 템플릿 매칭 (백오피스 매칭 규칙 사용)
+   */
+  async getMatchingTemplate(
+    mcpRequestType: string,
+    siteId?: string
+  ): Promise<{ template: any; templateType: string } | null> {
+    try {
+      logger.info('MCP 요청 타입 매칭 시작 (백오피스 규칙 사용)', { mcpRequestType, siteId });
+      
+      // 1. 백오피스에서 관리하는 매칭 규칙 조회
+      const matchingRule = await this.getMatchingRule(mcpRequestType, siteId);
+      
+      let templateType: string;
+      
+      if (matchingRule && matchingRule.is_active) {
+        // 백오피스 매칭 규칙이 있으면 사용
+        templateType = matchingRule.template_type;
+        logger.info('백오피스 매칭 규칙 적용', { 
+          mcpRequestType, 
+          templateType,
+          ruleId: matchingRule.id,
+          priority: matchingRule.priority
+        });
+      } else {
+        // 백오피스 매칭 규칙이 없으면 기본 매핑 사용
+        const defaultTemplateTypeMap: { [key: string]: string } = {
+          'impact_analysis': 'IMPACT_ANALYSIS',
+          'requirements_doc': 'REQUIREMENTS',
+          'api_documentation': 'API_DOCUMENTATION',
+          'deployment_guide': 'DEPLOYMENT_GUIDE',
+          'test_plan': 'TEST_PLAN',
+          'technical_spec': 'TECHNICAL_SPECIFICATION',
+          'user_manual': 'USER_MANUAL',
+          'release_notes': 'RELEASE_NOTES'
+        };
+
+        templateType = defaultTemplateTypeMap[mcpRequestType];
+        if (!templateType) {
+          logger.warn('지원하지 않는 MCP 요청 타입', { mcpRequestType });
+          return null;
+        }
+        
+        logger.info('기본 매핑 규칙 적용', { mcpRequestType, templateType });
+      }
+      
+      // 2. 매칭된 템플릿 타입으로 템플릿 조회
+      const templates = await this.getTemplatesByType(templateType, siteId, 1);
+      
+      if (!templates || templates.length === 0) {
+        logger.info('매칭되는 템플릿이 없음', { templateType, siteId });
+        return null;
+      }
+
+      // 첫 번째 템플릿 반환 (우선순위 정렬되어 있음)
+      const matchedTemplate = templates[0];
+      
+      logger.info('템플릿 매칭 성공', { 
+        templateType, 
+        templateId: matchedTemplate.template?.id,
+        templateName: matchedTemplate.template?.name,
+        usedBackofficeRule: !!matchingRule
+      });
+      
+      return {
+        template: matchedTemplate.template,
+        templateType: templateType
+      };
+      
+    } catch (error) {
+      logger.error('템플릿 매칭 오류', { mcpRequestType, siteId, error });
+      return null;
+    }
+  }
+
+  /**
+   * MCP 요청 타입에 맞는 매칭 규칙 조회
+   */
+  async getMatchingRule(
+    mcpRequestType: string,
+    siteId?: string
+  ): Promise<any | null> {
+    try {
+      logger.info('매칭 규칙 조회 요청', { mcpRequestType, siteId });
+      
+      const params = new URLSearchParams();
+      if (siteId) params.append('site_id', siteId);
+      
+      const queryString = params.toString();
+      const url = `/api/template-matching/rules/match/${mcpRequestType}${queryString ? `?${queryString}` : ''}`;
+      
+      const response = await this.client.get(url);
+      
+      if (response.data.success) {
+        return response.data.data?.rule || null;
+      } else {
+        logger.warn('매칭 규칙 조회 실패', response.data.message);
+        return null;
+      }
+    } catch (error) {
+      logger.error('매칭 규칙 조회 오류:', error);
+      return null;
+    }
+  }
 }
 
 // 싱글톤 인스턴스

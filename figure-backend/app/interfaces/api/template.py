@@ -155,6 +155,55 @@ async def get_template(
     )
 
 
+@router.get(
+    "/by-type/{template_type}",
+    response_model=APIResponse[List[TemplateResponse]],
+    summary="타입별 템플릿 조회",
+    description="지정된 타입의 템플릿 목록을 조회합니다. MCP 요청 매칭용."
+)
+async def get_templates_by_type(
+    template_type: TemplateType,
+    site_id: Optional[str] = None,
+    limit: int = 10,
+    service: TemplateService = Depends(get_template_service)
+) -> APIResponse[List[TemplateResponse]]:
+    """타입별 템플릿 조회 (MCP 매칭용)"""
+    try:
+        logger.info(f"타입별 템플릿 조회: {template_type}, site_id: {site_id}")
+        
+        # 검색 조건 구성
+        search_request = TemplateSearchRequest(
+            template_type=template_type,
+            site_id=site_id,
+            is_active=True,
+            limit=limit,
+            offset=0
+        )
+        
+        templates = await service.search_templates(search_request)
+        
+        # 우선순위 정렬 (기본 템플릿 우선, 최신순)
+        templates.sort(key=lambda t: (not t.is_default, -t.id))
+        
+        responses = [
+            TemplateResponse(template=template, can_edit=True, can_delete=True)
+            for template in templates
+        ]
+        
+        return APIResponse(
+            success=True,
+            message=f"{template_type} 타입 템플릿 {len(responses)}개 조회 완료",
+            data=responses
+        )
+        
+    except Exception as e:
+        logger.error(f"타입별 템플릿 조회 오류: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="템플릿 조회 중 오류가 발생했습니다."
+        )
+
+
 @router.post(
     "/search",
     response_model=APIResponse[List[TemplateResponse]],

@@ -12,17 +12,21 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exception_handlers import http_exception_handler
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 import uvicorn
 
 from app.config import settings
 from app.domain.entities.schemas import APIResponse
-from app.interfaces.api import rag, documents, sites, admin, usage, auth, template, analysis
+from app.interfaces.api import rag, documents, sites, admin, usage, auth, template, analysis, template_matching
 from app.application.services.vector_store import vector_store_service
 from app.application.services.rag_service import rag_service
 from app.application.services.auth_service import auth_service
 from app.application.services.template_service import initialize_template_service
 from app.infrastructure.adapters.template_repository_impl import SQLiteTemplateRepository, FileSystemTemplateStorageRepository
 from app.infrastructure.adapters.template_usage_repository_impl import SQLiteTemplateUsageRepository
+from app.infrastructure.middleware.logging_middleware import APILoggingMiddleware
+from app.infrastructure.dependencies.logging_dependencies import get_logging_service
 
 # 로깅 설정
 logging.basicConfig(
@@ -90,6 +94,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# API 로깅 미들웨어 설정
+app.add_middleware(
+    APILoggingMiddleware,
+    logging_service=get_logging_service(),
+    exclude_paths={"/health", "/docs", "/redoc", "/openapi.json", "/favicon.ico"}
+)
+
 
 # 글로벌 예외 처리
 @app.exception_handler(Exception)
@@ -106,6 +117,32 @@ async def global_exception_handler(request: Request, exc: Exception):
         }
     )
 
+
+# Request Validation 예외 처리 (422 에러)
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """Request Validation 예외 처리기 (422 에러)"""
+    # 상세한 에러 정보 로깅
+    logger.error(f"422 Validation Error - Path: {request.url.path}")
+    logger.error(f"Validation errors: {exc.errors()}")
+    logger.error(f"Request body: {exc.body if hasattr(exc, 'body') else 'N/A'}")
+    
+    # 에러 메시지 포맷팅
+    errors = []
+    for error in exc.errors():
+        field = " -> ".join([str(loc) for loc in error["loc"]])
+        message = error["msg"]
+        errors.append(f"{field}: {message}")
+    
+    return JSONResponse(
+        status_code=422,
+        content={
+            "success": False,
+            "message": "요청 데이터 검증 실패",
+            "errors": errors,
+            "detail": exc.errors()  # 원본 에러 정보도 포함
+        }
+    )
 
 # HTTP 예외 처리
 @app.exception_handler(HTTPException)
@@ -133,6 +170,7 @@ app.include_router(template.router)
 app.include_router(admin.router)
 app.include_router(usage.router, prefix="/api")
 app.include_router(analysis.router, prefix="/api")
+app.include_router(template_matching.router)
 
 
 # 기본 엔드포인트

@@ -104,4 +104,22 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    last_login = Column(DateTime, nullable=True) 
+    last_login = Column(DateTime, nullable=True)
+
+
+class TemplateMatchingRuleModel(Base):
+    """템플릿 매칭 규칙 모델"""
+    __tablename__ = "template_matching_rules"
+    
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    mcp_request_type = Column(String(50), nullable=False, index=True)  # MCP 요청 타입
+    template_type = Column(String(50), nullable=False, index=True)     # 템플릿 타입
+    site_id = Column(String, nullable=True, index=True)               # 사이트별 매칭 (NULL이면 전체)
+    priority = Column(Integer, default=0, nullable=False, index=True)  # 우선순위
+    is_active = Column(Boolean, default=True, nullable=False)         # 활성화 여부
+    description = Column(Text, nullable=True)                         # 규칙 설명
+    
+    # 메타데이터
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_by = Column(String(100), nullable=True) 

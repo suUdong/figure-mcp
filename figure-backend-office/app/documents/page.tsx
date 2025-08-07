@@ -37,10 +37,25 @@ type ViewMode = 'grid' | 'list';
 type SortField = 'name' | 'date' | 'size' | 'status';
 type SortOrder = 'asc' | 'desc';
 
+// 템플릿 타입 매핑
+const TEMPLATE_TYPES = {
+  'REQUIREMENTS': '요구사항 정의서',
+  'IMPACT_ANALYSIS': '영향도 분석서',
+  'API_DOCUMENTATION': 'API 문서',
+  'DEPLOYMENT_GUIDE': '배포 가이드',
+  'TEST_PLAN': '테스트 계획서',
+  'TECHNICAL_SPECIFICATION': '기술 명세서',
+  'USER_MANUAL': '사용자 매뉴얼',
+  'RELEASE_NOTES': '릴리즈 노트',
+  'CUSTOM': '사용자 정의'
+};
+
 interface FilterOptions {
   type: 'all' | 'pdf' | 'txt' | 'doc' | 'docx';
   status: 'all' | 'processed' | 'processing' | 'failed' | 'pending';
   dateRange: 'all' | 'today' | 'week' | 'month';
+  templateType: 'all' | 'REQUIREMENTS' | 'IMPACT_ANALYSIS' | 'API_DOCUMENTATION' | 'DEPLOYMENT_GUIDE' | 'TEST_PLAN' | 'TECHNICAL_SPECIFICATION' | 'USER_MANUAL' | 'RELEASE_NOTES' | 'CUSTOM';
+  siteId: string;
 }
 
 export default function DocumentsPage() {
@@ -57,7 +72,9 @@ export default function DocumentsPage() {
   const [filters, setFilters] = useState<FilterOptions>({
     type: 'all',
     status: 'all',
-    dateRange: 'all'
+    dateRange: 'all',
+    templateType: 'all',
+    siteId: ''
   })
   
   const { 
@@ -67,7 +84,10 @@ export default function DocumentsPage() {
     searchDocuments, 
     deleteDocument, 
     refetch
-  } = useDocuments()
+  } = useDocuments({
+    siteId: filters.siteId || undefined,
+    templateType: filters.templateType !== 'all' ? filters.templateType : undefined
+  })
 
   const handleSearch = () => {
     if (searchQuery.trim()) {
@@ -251,12 +271,14 @@ export default function DocumentsPage() {
     setFilters({
       type: 'all',
       status: 'all',
-      dateRange: 'all'
+      dateRange: 'all',
+      templateType: 'all',
+      siteId: ''
     })
     setSearchQuery('')
   }
 
-  const activeFiltersCount = Object.values(filters).filter(value => value !== 'all').length
+  const activeFiltersCount = Object.values(filters).filter(value => value !== 'all' && value !== '').length
 
   // 업로드 관련 핸들러
   const handleUploadComplete = () => {
@@ -385,6 +407,37 @@ export default function DocumentsPage() {
                       <option value="week">최근 1주일</option>
                       <option value="month">최근 1개월</option>
                     </select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">템플릿 유형</label>
+                    <select
+                      value={filters.templateType}
+                      onChange={(e) => setFilters(prev => ({ ...prev, templateType: e.target.value as any }))}
+                      className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm focus:border-figure-500 focus:ring-2 focus:ring-figure-500/20 focus:outline-none"
+                    >
+                      <option value="all">모든 템플릿</option>
+                      <option value="REQUIREMENTS">요구사항 정의서</option>
+                      <option value="IMPACT_ANALYSIS">영향도 분석서</option>
+                      <option value="API_DOCUMENTATION">API 문서</option>
+                      <option value="DEPLOYMENT_GUIDE">배포 가이드</option>
+                      <option value="TEST_PLAN">테스트 계획서</option>
+                      <option value="TECHNICAL_SPECIFICATION">기술 명세서</option>
+                      <option value="USER_MANUAL">사용자 매뉴얼</option>
+                      <option value="RELEASE_NOTES">릴리즈 노트</option>
+                      <option value="CUSTOM">사용자 정의</option>
+                    </select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">사이트</label>
+                    <input
+                      type="text"
+                      value={filters.siteId}
+                      onChange={(e) => setFilters(prev => ({ ...prev, siteId: e.target.value }))}
+                      placeholder="사이트 ID 입력"
+                      className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm focus:border-figure-500 focus:ring-2 focus:ring-figure-500/20 focus:outline-none"
+                    />
                   </div>
                   
                   <div className="flex items-end">
@@ -557,6 +610,19 @@ export default function DocumentsPage() {
                             <span>{(document.size / 1024).toFixed(1)} KB</span>
                             <span>벡터: {document.vector_count || 0}개</span>
                           </div>
+                          {/* 템플릿 정보 표시 */}
+                          {(document as any).template_type && (
+                            <div className="flex items-center gap-2 mt-2">
+                              <Badge variant="outline" className="text-xs">
+                                {TEMPLATE_TYPES[(document as any).template_type] || (document as any).template_type}
+                              </Badge>
+                              {(document as any).template_version && (
+                                <Badge variant="secondary" className="text-xs">
+                                  v{(document as any).template_version}
+                                </Badge>
+                              )}
+                            </div>
+                          )}
                         </div>
                         
                         <div className="flex items-center gap-3">

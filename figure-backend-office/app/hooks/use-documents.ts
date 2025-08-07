@@ -5,16 +5,36 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { Document } from '@/types/api'
 
-export function useDocuments() {
+interface UseDocumentsOptions {
+  siteId?: string;
+  templateType?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export function useDocuments(options: UseDocumentsOptions = {}) {
   const queryClient = useQueryClient()
   const [searchResults, setSearchResults] = useState<Document[]>([])
   const [isSearching, setIsSearching] = useState(false)
 
-  // Get all documents
+  // Get all documents with filters
   const { data: documents, isLoading, error, refetch } = useQuery({
-    queryKey: ['documents'],
+    queryKey: ['documents', options],
     queryFn: async () => {
-      const response = await api.get('/api/documents')
+      const params: any = {
+        limit: options.limit || 50,
+        offset: options.offset || 0
+      };
+      
+      if (options.siteId) {
+        params.site_id = options.siteId;
+      }
+      
+      if (options.templateType && options.templateType !== 'all') {
+        params.template_type = options.templateType;
+      }
+      
+      const response = await api.get('/api/documents', { params });
       return response.data.data.documents // APIResponse 구조에서 실제 문서 배열 추출
     }
   })

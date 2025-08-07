@@ -110,6 +110,25 @@ class TemplateService:
         """유형별 템플릿 조회"""
         return await self.template_repo.get_by_type(template_type, site_id, is_active)
     
+    async def get_templates_by_filters(
+        self,
+        template_type: Optional[TemplateType] = None,
+        site_id: Optional[str] = None,
+        is_active: bool = True,
+        limit: Optional[int] = None
+    ) -> List[Template]:
+        """필터 조건으로 템플릿 조회"""
+        # 검색 요청 구성
+        search_request = TemplateSearchRequest(
+            template_type=template_type,
+            site_id=site_id,
+            is_active=is_active,
+            page=1,
+            size=limit or 100
+        )
+        
+        return await self.template_repo.search(search_request)
+    
     async def get_default_template(
         self, 
         template_type: TemplateType,

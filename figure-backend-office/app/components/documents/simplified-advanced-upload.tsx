@@ -50,6 +50,19 @@ interface FileUploadItem {
   abortController?: AbortController;
 }
 
+// 템플릿 유형 상수
+const TEMPLATE_TYPES = {
+  'REQUIREMENTS': '요구사항 정의서',
+  'IMPACT_ANALYSIS': '영향도 분석서',
+  'API_DOCUMENTATION': 'API 문서',
+  'DEPLOYMENT_GUIDE': '배포 가이드',
+  'TEST_PLAN': '테스트 계획서',
+  'TECHNICAL_SPECIFICATION': '기술 명세서',
+  'USER_MANUAL': '사용자 매뉴얼',
+  'RELEASE_NOTES': '릴리즈 노트',
+  'CUSTOM': '사용자 정의'
+};
+
 interface SimplifiedAdvancedUploadProps {
   maxFiles?: number;
   maxSize?: number;
@@ -91,6 +104,8 @@ export default function SimplifiedAdvancedUpload({
   const [siteId, setSiteId] = useState("");
   const [description, setDescription] = useState("");
   const [tags, setTags] = useState("");
+  const [templateType, setTemplateType] = useState(""); // 템플릿 유형
+  const [templateVersion, setTemplateVersion] = useState("1.0.0"); // 템플릿 버전
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragCountRef = useRef(0);
 
@@ -251,11 +266,20 @@ export default function SimplifiedAdvancedUpload({
       );
 
       try {
+        // 필수 필드 검증
+        if (!siteId || siteId.trim() === "") {
+          throw new Error("사이트를 선택해주세요.");
+        }
+        if (!templateType || templateType.trim() === "") {
+          throw new Error("템플릿 유형을 선택해주세요.");
+        }
+        
         const formData = new FormData();
         formData.append("file", fileItem.file);
-
-        if (siteId) {
-          formData.append("site_id", siteId);
+        
+        // site_id는 값이 있을 때만 추가
+        if (siteId && siteId.trim() !== "") {
+          formData.append("site_id", siteId.trim());
         }
 
         const metadata = {
@@ -264,8 +288,19 @@ export default function SimplifiedAdvancedUpload({
             .split(",")
             .map((tag) => tag.trim())
             .filter(Boolean),
+          template_type: templateType || "",
+          template_version: templateVersion || "1.0.0",
         };
         formData.append("metadata", JSON.stringify(metadata));
+        
+        // 디버깅을 위한 로그
+        console.log("[Upload Debug] Sending FormData:", {
+          filename: fileItem.file.name,
+          site_id: siteId,
+          site_id_trimmed: siteId?.trim(),
+          template_type: templateType,
+          metadata: metadata
+        });
 
         const response = await api.post(
           "/api/documents/upload-file",
@@ -402,9 +437,20 @@ export default function SimplifiedAdvancedUpload({
 
   // 전체 업로드
   const uploadAllFiles = useCallback(async () => {
-    // 사이트 선택 필수 검증
+    // 파일이 없는 경우 체크
+    if (files.length === 0) {
+      alert("업로드할 파일을 선택해주세요.");
+      return;
+    }
+    
+    // 필수 필드 검증
     if (!siteId) {
-      alert("MCP 문서 생성 요청에 필요한 사이트를 선택해주세요.");
+      alert("사이트를 선택해주세요. (필수)");
+      return;
+    }
+    
+    if (!templateType) {
+      alert("템플릿 유형을 선택해주세요. (필수)");
       return;
     }
 
@@ -544,9 +590,51 @@ export default function SimplifiedAdvancedUpload({
               )}
               {!siteId && (
                 <p className="text-xs text-red-600 mt-1">
-                  MCP 문서 생성 요청 시 필요한 키값입니다. 반드시 선택해주세요.
+                  템플릿 문서 생성에 필요한 필수 항목입니다.
                 </p>
               )}
+            </div>
+            <div>
+              <Label htmlFor="templateType" className="flex items-center gap-1">
+                템플릿 유형
+                <span className="text-red-500">*</span>
+              </Label>
+              <select
+                id="templateType"
+                value={templateType}
+                onChange={(e) => setTemplateType(e.target.value)}
+                className={cn(
+                  "flex h-10 w-full rounded-md border px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+                  !templateType ? "border-red-300 bg-red-50" : "border-input bg-background"
+                )}
+                required
+              >
+                <option value="">템플릿 유형을 선택하세요 (필수)</option>
+                {Object.entries(TEMPLATE_TYPES).map(([key, label]) => (
+                  <option key={key} value={key}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+              {!templateType && (
+                <p className="text-xs text-red-600 mt-1">
+                  문서의 유형을 명확히 하기 위한 필수 항목입니다.
+                </p>
+              )}
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="templateVersion">템플릿 버전</Label>
+              <Input
+                id="templateVersion"
+                value={templateVersion}
+                onChange={(e) => setTemplateVersion(e.target.value)}
+                placeholder="예: 1.0.0, 1.1.0"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                시맨틱 버저닝 권장 (예: 1.0.0)
+              </p>
             </div>
             <div>
               <Label htmlFor="tags">태그</Label>
@@ -664,10 +752,10 @@ export default function SimplifiedAdvancedUpload({
               <div className="flex items-center space-x-2">
                 <Button
                   onClick={uploadAllFiles}
-                  disabled={isUploading || stats.pending === 0 || !siteId}
+                  disabled={isUploading || stats.pending === 0 || !siteId || !templateType}
                   size="sm"
                   className="flex items-center space-x-2"
-                  title={!siteId ? "사이트를 선택해주세요" : undefined}
+                  title={!siteId ? "사이트를 선택해주세요" : !templateType ? "템플릿 유형을 선택해주세요" : undefined}
                 >
                   <Play className="h-4 w-4" />
                   <span>전체 업로드</span>

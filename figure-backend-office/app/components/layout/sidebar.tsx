@@ -16,6 +16,7 @@ import {
   Cpu,
   TestTube,
   Activity,
+  Link as LinkIcon,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -43,7 +44,6 @@ const navigation: NavigationItem[] = [
     children: [
       { title: '문서 목록', href: '/documents', icon: FileText },
       { title: '문서 업로드', href: '/documents/upload', icon: FileText },
-      { title: '고급 업로드', href: '/documents/advanced-upload', icon: FileText },
     ],
   },
   {
@@ -65,6 +65,7 @@ const navigation: NavigationItem[] = [
       { title: 'API 테스트', href: '/mcp/api-test', icon: TestTube },
       { title: 'API 모니터링', href: '/mcp/monitoring', icon: Activity },
       { title: 'API 문서', href: '/mcp/docs', icon: FileText },
+      { title: '템플릿 매칭', href: '/mcp/template-matching', icon: LinkIcon },
     ],
   },
 ];

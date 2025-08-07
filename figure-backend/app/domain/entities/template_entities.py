@@ -10,13 +10,15 @@ from pydantic import BaseModel, Field
 
 class TemplateType(str, Enum):
     """템플릿 유형"""
-    REQUIREMENTS_DOC = "requirements_doc"        # 요구사항 정의서
-    API_SPEC = "api_spec"                       # API 명세서  
-    INTERFACE_SPEC = "interface_spec"           # 인터페이스 명세서
-    TABLE_SPEC = "table_spec"                   # 테이블 명세서
-    ARCHITECTURE_DOC = "architecture_doc"       # 아키텍처 문서
-    DEPLOYMENT_GUIDE = "deployment_guide"       # 배포 가이드
-    CUSTOM = "custom"                           # 사용자 정의
+    REQUIREMENTS = "REQUIREMENTS"                        # 요구사항 정의서
+    IMPACT_ANALYSIS = "IMPACT_ANALYSIS"                  # 영향도 분석서
+    API_DOCUMENTATION = "API_DOCUMENTATION"              # API 문서
+    DEPLOYMENT_GUIDE = "DEPLOYMENT_GUIDE"                # 배포 가이드
+    TEST_PLAN = "TEST_PLAN"                              # 테스트 계획서
+    TECHNICAL_SPECIFICATION = "TECHNICAL_SPECIFICATION"  # 기술 명세서
+    USER_MANUAL = "USER_MANUAL"                          # 사용자 매뉴얼
+    RELEASE_NOTES = "RELEASE_NOTES"                      # 릴리즈 노트
+    CUSTOM = "CUSTOM"                                    # 사용자 정의
 
 
 class TemplateFormat(str, Enum):
@@ -143,3 +145,64 @@ class TemplateResponse(BaseModel):
     template: Template = Field(..., description="템플릿 정보")
     can_edit: bool = Field(default=False, description="편집 권한")
     can_delete: bool = Field(default=False, description="삭제 권한")
+
+
+class MCPRequestType(str, Enum):
+    """MCP 요청 타입"""
+    IMPACT_ANALYSIS = "impact_analysis"
+    REQUIREMENTS_DOC = "requirements_doc"
+    API_DOCUMENTATION = "api_documentation"
+    DEPLOYMENT_GUIDE = "deployment_guide"
+    TEST_PLAN = "test_plan"
+    TECHNICAL_SPEC = "technical_spec"
+    USER_MANUAL = "user_manual"
+    RELEASE_NOTES = "release_notes"
+
+
+class TemplateMatchingRule(BaseModel):
+    """템플릿 매칭 규칙"""
+    id: Optional[int] = Field(None, description="매칭 규칙 ID")
+    mcp_request_type: MCPRequestType = Field(..., description="MCP 요청 타입")
+    template_type: TemplateType = Field(..., description="매칭될 템플릿 타입")
+    site_id: Optional[str] = Field(None, description="사이트별 매칭 (None이면 전체)")
+    priority: int = Field(default=0, description="우선순위 (높을수록 우선)")
+    is_active: bool = Field(default=True, description="활성화 여부")
+    description: Optional[str] = Field(None, description="규칙 설명")
+    
+    # 메타데이터
+    created_at: Optional[datetime] = Field(None, description="생성일시")
+    updated_at: Optional[datetime] = Field(None, description="수정일시")
+    created_by: Optional[str] = Field(None, description="생성자")
+    
+    class Config:
+        from_attributes = True
+        json_encoders = {
+            datetime: lambda v: v.isoformat()
+        }
+
+
+class TemplateMatchingRuleCreateRequest(BaseModel):
+    """템플릿 매칭 규칙 생성 요청"""
+    mcp_request_type: MCPRequestType = Field(..., description="MCP 요청 타입")
+    template_type: TemplateType = Field(..., description="매칭될 템플릿 타입")
+    site_id: Optional[str] = Field(None, description="사이트별 매칭 (None이면 전체)")
+    priority: int = Field(default=0, description="우선순위")
+    is_active: bool = Field(default=True, description="활성화 여부")
+    description: Optional[str] = Field(None, description="규칙 설명")
+
+
+class TemplateMatchingRuleUpdateRequest(BaseModel):
+    """템플릿 매칭 규칙 수정 요청"""
+    mcp_request_type: Optional[MCPRequestType] = Field(None, description="MCP 요청 타입")
+    template_type: Optional[TemplateType] = Field(None, description="매칭될 템플릿 타입")
+    site_id: Optional[str] = Field(None, description="사이트별 매칭")
+    priority: Optional[int] = Field(None, description="우선순위")
+    is_active: Optional[bool] = Field(None, description="활성화 여부")
+    description: Optional[str] = Field(None, description="규칙 설명")
+
+
+class TemplateMatchingRuleResponse(BaseModel):
+    """템플릿 매칭 규칙 응답"""
+    rule: TemplateMatchingRule
+    can_edit: bool = True
+    can_delete: bool = True
