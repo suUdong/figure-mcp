@@ -71,7 +71,7 @@ export function useDocuments(options: UseDocumentsOptions = {}) {
     mutationFn: async (formData: FormData) => {
       const response = await api.post('/api/documents/upload-file', formData, {
         headers: {
-          'Content-Type': 'multipart/form-data'
+          // Content-Type 제거 - axios가 자동으로 boundary와 함께 설정
         }
       })
       return response.data

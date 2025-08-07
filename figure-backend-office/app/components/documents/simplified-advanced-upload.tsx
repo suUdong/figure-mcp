@@ -168,6 +168,13 @@ export default function SimplifiedAdvancedUpload({
 
       const newFileItems: FileUploadItem[] = await Promise.all(
         filesToProcess.map(async (file) => {
+          console.log("[File Debug] Adding file:", {
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            hasRequiredProps: !!(file.name && file.size !== undefined && file.type)
+          });
+          
           const item: FileUploadItem = {
             id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             file,
@@ -266,7 +273,7 @@ export default function SimplifiedAdvancedUpload({
       );
 
       try {
-        // 필수 필드 검증
+        // 필수 필드 검증 (엄격한 검증)
         if (!siteId || siteId.trim() === "") {
           throw new Error("사이트를 선택해주세요.");
         }
@@ -274,13 +281,16 @@ export default function SimplifiedAdvancedUpload({
           throw new Error("템플릿 유형을 선택해주세요.");
         }
         
+        // 검증된 값들을 정리
+        const validatedSiteId = siteId.trim();
+        const validatedTemplateType = templateType.trim();
+        
+        // FormData 구성 (검증을 통과한 값들만 사용)
         const formData = new FormData();
         formData.append("file", fileItem.file);
         
-        // site_id는 값이 있을 때만 추가
-        if (siteId && siteId.trim() !== "") {
-          formData.append("site_id", siteId.trim());
-        }
+        // 검증을 통과했으므로 반드시 추가 (조건 제거)
+        formData.append("site_id", validatedSiteId);
 
         const metadata = {
           description: description || "",
@@ -288,27 +298,39 @@ export default function SimplifiedAdvancedUpload({
             .split(",")
             .map((tag) => tag.trim())
             .filter(Boolean),
-          template_type: templateType || "",
+          template_type: validatedTemplateType, // 검증된 값 사용
           template_version: templateVersion || "1.0.0",
         };
         formData.append("metadata", JSON.stringify(metadata));
         
-        // 디버깅을 위한 로그
+        // 디버깅을 위한 로그 (검증된 값들로 업데이트)
+        console.log("[Upload Debug] File Object:", {
+          file: fileItem.file,
+          fileName: fileItem.file?.name,
+          fileSize: fileItem.file?.size,
+          fileType: fileItem.file?.type,
+          hasRequiredProps: !!(fileItem.file?.name && fileItem.file?.size !== undefined)
+        });
+        
         console.log("[Upload Debug] Sending FormData:", {
           filename: fileItem.file.name,
-          site_id: siteId,
-          site_id_trimmed: siteId?.trim(),
-          template_type: templateType,
+          site_id: validatedSiteId,
+          template_type: validatedTemplateType,
           metadata: metadata
         });
+        
+        // FormData 내용 확인
+        console.log("[Upload Debug] FormData entries:");
+        for (let [key, value] of formData.entries()) {
+          console.log(`${key}:`, value);
+        }
 
         const response = await api.post(
           "/api/documents/upload-file",
           formData,
           {
-            headers: {
-              "Content-Type": "multipart/form-data",
-            },
+            // Content-Type 헤더 제거 - axios가 자동으로 boundary와 함께 설정
+            headers: {},
             signal: fileItem.abortController?.signal,
             onUploadProgress: (progressEvent) => {
               if (progressEvent.total) {
@@ -359,8 +381,28 @@ export default function SimplifiedAdvancedUpload({
             prev.map((f) => (f.id === fileItem.id ? cancelledItem : f))
           );
         } else {
-          const errorMessage =
-            error?.response?.data?.detail || error?.message || "업로드 실패";
+          // 에러 메시지 안전하게 추출 (객체인 경우 JSON 변환)
+          let errorMessage = "업로드 실패";
+          
+          try {
+            const errorDetail = error?.response?.data?.detail;
+            if (typeof errorDetail === 'string') {
+              errorMessage = errorDetail;
+            } else if (typeof errorDetail === 'object' && errorDetail) {
+              // 배열인 경우 (FastAPI 422 에러)
+              if (Array.isArray(errorDetail)) {
+                errorMessage = errorDetail.map(err => err.msg || err).join(', ');
+              } else {
+                errorMessage = JSON.stringify(errorDetail);
+              }
+            } else if (error?.message) {
+              errorMessage = error.message;
+            }
+          } catch (e) {
+            console.error('Error parsing error message:', e);
+            errorMessage = "업로드 실패 (에러 메시지 파싱 실패)";
+          }
+          
           const errorItem = {
             ...fileItem,
             status: "error" as const,
@@ -376,7 +418,7 @@ export default function SimplifiedAdvancedUpload({
         }
       }
     },
-    [siteId, description, tags, onUploadComplete, onUploadError]
+    [siteId, description, tags, templateType, templateVersion, onUploadComplete, onUploadError]
   );
 
   // 업로드 제어
@@ -443,13 +485,13 @@ export default function SimplifiedAdvancedUpload({
       return;
     }
     
-    // 필수 필드 검증
-    if (!siteId) {
+    // 필수 필드 검증 (uploadFile 함수와 동일한 로직)
+    if (!siteId || siteId.trim() === "") {
       alert("사이트를 선택해주세요. (필수)");
       return;
     }
     
-    if (!templateType) {
+    if (!templateType || templateType.trim() === "") {
       alert("템플릿 유형을 선택해주세요. (필수)");
       return;
     }
@@ -465,7 +507,7 @@ export default function SimplifiedAdvancedUpload({
     } finally {
       setIsUploading(false);
     }
-  }, [files, uploadFile, onAllComplete, siteId]);
+  }, [files, uploadFile, onAllComplete, siteId, templateType]);
 
   // 유틸리티 함수들
   const formatFileSize = (bytes: number): string => {

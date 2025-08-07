@@ -108,7 +108,7 @@ export function useAdvancedUpload(options: UploadOptions = {}) {
           "/api/documents/upload-chunk",
           formData,
           {
-            headers: { "Content-Type": "multipart/form-data" },
+            headers: {}, // Content-Type 제거 - axios가 자동으로 boundary와 함께 설정
             signal: uploadFile.abortController?.signal,
             onUploadProgress: (progressEvent) => {
               if (progressEvent.total) {
@@ -250,8 +250,27 @@ export function useAdvancedUpload(options: UploadOptions = {}) {
           return;
         }
 
-        const errorMessage =
-          error?.response?.data?.detail || error?.message || "업로드 실패";
+        // 에러 메시지 안전하게 추출 (객체인 경우 JSON 변환)
+        let errorMessage = "업로드 실패";
+        
+        try {
+          const errorDetail = error?.response?.data?.detail;
+          if (typeof errorDetail === 'string') {
+            errorMessage = errorDetail;
+          } else if (typeof errorDetail === 'object' && errorDetail) {
+            // 배열인 경우 (FastAPI 422 에러)
+            if (Array.isArray(errorDetail)) {
+              errorMessage = errorDetail.map(err => err.msg || err).join(', ');
+            } else {
+              errorMessage = JSON.stringify(errorDetail);
+            }
+          } else if (error?.message) {
+            errorMessage = error.message;
+          }
+        } catch (e) {
+          console.error('Error parsing error message:', e);
+          errorMessage = "업로드 실패 (에러 메시지 파싱 실패)";
+        }
         const errorFile = {
           ...updatedFile,
           status: "error" as const,
