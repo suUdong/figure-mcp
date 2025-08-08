@@ -66,6 +66,22 @@ class Document(Base):
     content_hash = Column(String, nullable=True)  # 콘텐츠 해시
     processing_status = Column(String, default="pending")  # pending, processing, completed, failed
     extra_data = Column(JSON, nullable=True)  # 추가 메타데이터
+    
+    # 템플릿 관련 필드 (통합)
+    is_template = Column(Boolean, default=False, index=True)  # 템플릿 여부
+    template_type = Column(String, nullable=True, index=True)  # 템플릿 타입 (IMPACT_ANALYSIS 등)
+    template_name = Column(String, nullable=True, index=True)  # 템플릿 이름
+    template_description = Column(String, nullable=True)  # 템플릿 설명
+    template_version = Column(String, default="1.0.0")  # 템플릿 버전
+    template_format = Column(String, default="markdown")  # 템플릿 포맷
+    template_variables = Column(JSON, nullable=True)  # 템플릿 변수 정의
+    template_tags = Column(String, nullable=True)  # 템플릿 태그 (쉼표 구분)
+    usage_count = Column(Integer, default=0)  # 사용 횟수
+    is_active = Column(Boolean, default=True)  # 활성 상태
+    is_default = Column(Boolean, default=False)  # 기본 템플릿 여부
+    created_by = Column(String, nullable=True)  # 생성자
+    updated_by = Column(String, nullable=True)  # 수정자
+    
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

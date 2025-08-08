@@ -516,12 +516,13 @@ async def download_file(
 @router.post(
     "/upload",
     response_model=APIResponse,
-    summary="문서 업로드",
-    description="새 문서를 벡터 데이터베이스에 업로드합니다."
+    summary="문서 업로드 (하이브리드)",
+    description="새 문서를 벡터 데이터베이스에 업로드하고, 템플릿인 경우 SQLite에도 저장합니다."
 )
 async def upload_document(
     request: UploadDocumentRequest,
-    service: object = Depends(get_vector_store_service)
+    service: object = Depends(get_vector_store_service),
+    template_service: TemplateService = Depends(get_template_service)
 ) -> APIResponse:
     """
     문서 업로드
@@ -574,25 +575,111 @@ async def upload_document(
             # 벡터 저장소에 추가
             doc_id = await service.add_document(document)
             
+            # 통합 DB 저장: 문서를 figure.db에 저장 (템플릿 정보 포함)
+            template_id = None
+            logger.info(f"통합 DB 저장 체크 - metadata: {request.metadata}, type: {type(request.metadata)}")
+            
+            # 문서를 figure.db에 저장 (템플릿 정보 포함)
+            try:
+                from app.infrastructure.persistence.connection import DatabaseManager
+                from app.infrastructure.persistence.models import Document as DocumentModel
+                
+                # 메타데이터에서 템플릿 정보 추출
+                is_template = False
+                template_type_str = ""
+                template_version = "1.0.0"
+                template_description = ""
+                template_tags = ""
+                
+                if request.metadata and isinstance(request.metadata, dict):
+                    template_type_str = request.metadata.get('template_type', '')
+                    is_template = bool(template_type_str)
+                    template_version = request.metadata.get('template_version', '1.0.0')
+                    template_description = request.metadata.get('description', request.title or '')
+                    tags = request.metadata.get('tags', '')
+                    
+                    # 태그 처리 (문자열을 리스트로 변환)
+                    if isinstance(tags, str):
+                        template_tags = tags
+                    elif isinstance(tags, list):
+                        template_tags = ",".join(tags)
+                    else:
+                        template_tags = ""
+                
+                logger.info(f"템플릿 체크 - template_type: '{template_type_str}', is_template: {is_template}")
+                
+                # figure.db에 문서 저장
+                db_manager = DatabaseManager()
+                with db_manager.SessionLocal() as db_session:
+                    # 템플릿 타입 매핑
+                    template_type_backend = FRONTEND_TEMPLATE_TYPE_MAPPING.get(
+                        template_type_str, 
+                        template_type_str.lower().replace('_', '-') if template_type_str else ''
+                    )
+                    
+                    # Document 모델 생성
+                    db_document = DocumentModel(
+                        id=doc_id,
+                        site_id=request.site_id,
+                        title=request.title,
+                        doc_type=request.doc_type.value,
+                        source_url=request.source_url or "",
+                        file_path=None,  # JSON 업로드는 파일 경로 없음
+                        file_size=len(request.content),
+                        content_hash=None,  # 필요시 나중에 추가
+                        processing_status="completed",
+                        extra_data=request.metadata or {},
+                        
+                        # 템플릿 관련 필드
+                        is_template=is_template,
+                        template_type=template_type_backend if is_template else None,
+                        template_name=request.title if is_template else None,
+                        template_description=template_description if is_template else None,
+                        template_version=template_version if is_template else "1.0.0",
+                        template_format="markdown" if request.doc_type.value == 'text' else "text",
+                        template_variables={},
+                        template_tags=template_tags if is_template else None,
+                        usage_count=0,
+                        is_active=True,
+                        is_default=False,
+                        created_by="hybrid_upload_json"
+                    )
+                    
+                    # DB에 저장
+                    db_session.add(db_document)
+                    db_session.commit()
+                    
+                    logger.info(f"통합 DB 저장 완료 - 문서: {doc_id}, 템플릿: {is_template}")
+                    
+                    if is_template:
+                        template_id = doc_id  # 문서 ID를 템플릿 ID로 사용
+                        
+            except Exception as db_error:
+                logger.warning(f"통합 DB 저장 실패 (벡터 저장은 성공): {db_error}")
+                
+
+            
             # 진행 상태 업데이트: 완료
             job_service.update_job(job.id, JobUpdate(
                 status=JobStatus.COMPLETED,
                 progress=100.0,
-                message="문서 업로드 완료",
-                metadata={"document_id": doc_id}
+                message="문서 업로드 완료" + (f" (템플릿 ID: {template_id})" if template_id else ""),
+                metadata={"document_id": doc_id, "template_id": template_id}
             ))
             
             logger.info(f"문서 업로드 성공: {doc_id}")
             
             return APIResponse(
                 success=True,
-                message="문서 업로드 성공",
+                message="문서 업로드 성공" + (" (하이브리드 저장)" if template_id else ""),
                 data={
                     "document_id": doc_id,
+                    "template_id": template_id,
                     "job_id": job.id,
                     "title": document.title,
                     "doc_type": document.doc_type.value,
-                    "created_at": document.created_at.isoformat()
+                    "created_at": document.created_at.isoformat(),
+                    "is_hybrid": template_id is not None
                 }
             )
             
