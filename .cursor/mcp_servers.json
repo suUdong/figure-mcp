@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "figure-mcp": {
+      "command": "node",
+      "args": ["figure-mcp/dist/figure-mcp-server.js"],
+      "env": {
+        "BACKEND_API_URL": "http://localhost:8001/api"
+      }
+    }
+  }
+}

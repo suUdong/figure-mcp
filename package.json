@@ -4,9 +4,9 @@
   "description": "MCP 기반 지능형 개발 표준 자동 산출물 생성 시스템",
   "private": true,
   "scripts": {
-    "dev": "cd figure-mcp-server && npm run dev",
-    "build": "cd figure-mcp-server && npm run build",
-    "start": "cd figure-mcp-server && npm start",
+    "dev": "cd figure-mcp && npm run dev",
+    "build": "cd figure-mcp && npm run build",
+    "start": "cd figure-mcp && npm start",
     "docker:build": "docker-compose build",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down"

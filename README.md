@@ -33,7 +33,7 @@ Figure-MCP는 MCP(Model Context Protocol) 서버로, 개발 표준 문서를 관
    npm run dev
    
    # 또는 직접 실행
-   cd figure-mcp-server
+   cd figure-mcp
    npm install
    npm run dev
    ```
@@ -47,7 +47,7 @@ Figure-MCP는 MCP(Model Context Protocol) 서버로, 개발 표준 문서를 관
 
 ### 환경 설정
 
-`figure-mcp-server/.env` 파일에 다음 변수들을 설정하세요:
+`figure-mcp/.env` 파일에 다음 변수들을 설정하세요:
 
 ```bash
 # 서버 설정
@@ -109,13 +109,13 @@ Cursor나 Copilot에서 이 MCP 서버에 연결하여 개발 표준 기반 자�
 
 ```
 figure-mcp/
-├── figure-mcp-server/          # MCP 서버
+├── figure-mcp/                # MCP 서버
 │   ├── src/
-│   │   ├── server.ts          # 메인 서버
-│   │   └── utils/logger.ts    # 로거 유틸리티
+│   │   └── figure-mcp-server.ts  # 메인 서버
 │   ├── package.json
-│   ├── tsconfig.json
-│   └── Dockerfile
+│   └── tsconfig.json
+├── figure-backend/            # 백엔드 API 서버
+├── figure-backend-office/     # 관리자 대시보드
 ├── docker-compose.yml         # Docker 설정
 ├── package.json              # 루트 패키지 설정
 └── README.md                 # 이 파일
@@ -126,7 +126,7 @@ figure-mcp/
 ### 로컬 개발
 
 ```bash
-cd figure-mcp-server
+cd figure-mcp
 npm install
 npm run dev
 ```
