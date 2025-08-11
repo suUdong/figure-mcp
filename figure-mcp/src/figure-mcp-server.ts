@@ -21,16 +21,28 @@ import * as crypto from 'crypto';
 class FigureMCPServer {
   private server: Server;
   private apiClient: AxiosInstance;
+  private jiraClient: AxiosInstance | null = null;
   private readonly BACKEND_API_URL: string;
   private readonly CACHE_DIR: string;
   private readonly CACHE_TTL: number = 60 * 60 * 1000; // 1시간 (밀리초)
+  private readonly JIRA_BASE_URL: string;
+  private readonly JIRA_EMAIL: string;
+  private readonly JIRA_API_TOKEN: string;
 
   constructor() {
     this.BACKEND_API_URL = process.env.BACKEND_API_URL || 'http://localhost:8001/api';
     this.CACHE_DIR = path.join(process.cwd(), '.cache', 'figure-mcp');
     
+    // JIRA 설정
+    this.JIRA_BASE_URL = process.env.JIRA_BASE_URL || '';
+    this.JIRA_EMAIL = process.env.JIRA_EMAIL || '';
+    this.JIRA_API_TOKEN = process.env.JIRA_API_TOKEN || '';
+    
     // 캐시 디렉토리 생성
     this.initializeCacheDirectory();
+    
+    // JIRA 클라이언트 초기화
+    this.initializeJiraClient();
     
     this.server = new Server(
       {
@@ -97,6 +109,49 @@ class FigureMCPServer {
               type: 'object',
               properties: {},
             },
+          },
+          {
+            name: 'fetch_jira_ticket',
+            description: 'JIRA 티켓 정보를 조회하여 요구사항을 가져옵니다.',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                ticketKey: { 
+                  type: 'string', 
+                  description: 'JIRA 티켓 키 (예: PROJ-123)' 
+                },
+                includeComments: {
+                  type: 'boolean',
+                  default: false,
+                  description: '댓글 포함 여부'
+                },
+                includeSubtasks: {
+                  type: 'boolean', 
+                  default: false,
+                  description: '하위 작업 포함 여부'
+                }
+              },
+              required: ['ticketKey'],
+            },
+          },
+          {
+            name: 'search_jira_tickets',
+            description: 'JQL을 사용하여 JIRA 티켓들을 검색합니다.',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                jql: { 
+                  type: 'string', 
+                  description: 'JIRA Query Language (예: project = PROJ AND status = "In Progress")' 
+                },
+                maxResults: {
+                  type: 'number',
+                  default: 10,
+                  description: '최대 결과 수'
+                }
+              },
+              required: ['jql'],
+            },
           }
         ],
       };
@@ -112,6 +167,10 @@ class FigureMCPServer {
             return await this.handleCreateImpactAnalysis(args as any);
           case 'list_available_sites': 
             return await this.handleListAvailableSites();
+          case 'fetch_jira_ticket': 
+            return await this.handleFetchJiraTicket(args as any);
+          case 'search_jira_tickets': 
+            return await this.handleSearchJiraTickets(args as any);
           default: 
             throw new Error(`알 수 없는 도구: ${name}`);
         }
@@ -194,6 +253,34 @@ class FigureMCPServer {
   }
 
 
+
+  /**
+   * JIRA 클라이언트 초기화
+   */
+  private initializeJiraClient(): void {
+    if (!this.JIRA_BASE_URL || !this.JIRA_EMAIL || !this.JIRA_API_TOKEN) {
+      console.error('⚠️ JIRA 설정이 없습니다. JIRA 기능을 사용하려면 환경 변수를 설정하세요:');
+      console.error('   JIRA_BASE_URL=https://your-domain.atlassian.net');
+      console.error('   JIRA_EMAIL=your-email@company.com');
+      console.error('   JIRA_API_TOKEN=your-api-token');
+      return;
+    }
+
+    // Basic Auth 토큰 생성 (email:api_token을 base64 인코딩)
+    const authToken = Buffer.from(`${this.JIRA_EMAIL}:${this.JIRA_API_TOKEN}`).toString('base64');
+
+    this.jiraClient = axios.create({
+      baseURL: `${this.JIRA_BASE_URL}/rest/api/3`,
+      timeout: 30000,
+      headers: {
+        'Authorization': `Basic ${authToken}`,
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+    });
+
+    console.error(`🔗 JIRA 클라이언트 초기화 완료: ${this.JIRA_BASE_URL}`);
+  }
 
   /**
    * 캐시 디렉토리 초기화
@@ -502,6 +589,220 @@ ${templateData.instructions || '표준 지침을 따라 작성하세요.'}
   }
 
   /**
+   * JIRA 티켓 조회 (캐싱 적용)
+   */
+  private async handleFetchJiraTicket(args: { ticketKey: string; includeComments?: boolean; includeSubtasks?: boolean }) {
+    if (!this.jiraClient) {
+      return {
+        content: [{
+          type: 'text',
+          text: '❌ JIRA 설정이 없습니다. 환경 변수를 설정하고 서버를 재시작하세요.'
+        }],
+        isError: true,
+      };
+    }
+
+    try {
+      const cacheKey = this.generateCacheKey(`jira-ticket:${args.ticketKey}`, args);
+      
+      // 캐시 확인
+      const cachedTicket = this.getCachedData(cacheKey);
+      if (cachedTicket) {
+        return {
+          content: [{
+            type: 'text',
+            text: this.formatJiraTicketResponse(cachedTicket, '캐시에서 조회')
+          }]
+        };
+      }
+
+      // JIRA API 호출
+      const expand = [];
+      if (args.includeComments) expand.push('comments');
+      if (args.includeSubtasks) expand.push('subtasks');
+      
+      const expandParam = expand.length > 0 ? expand.join(',') : undefined;
+      const url = `/issue/${args.ticketKey}${expandParam ? `?expand=${expandParam}` : ''}`;
+      
+      const response = await this.jiraClient.get(url);
+      const ticket = response.data;
+
+      // 캐시 저장
+      this.setCachedData(cacheKey, ticket);
+
+      return {
+        content: [{
+          type: 'text',
+          text: this.formatJiraTicketResponse(ticket, 'JIRA에서 조회')
+        }]
+      };
+    } catch (error: any) {
+      const errorMessage = error.response?.status === 404 
+        ? `티켓 '${args.ticketKey}'를 찾을 수 없습니다.`
+        : `JIRA 티켓 조회 실패: ${error.message}`;
+      
+      return {
+        content: [{
+          type: 'text',
+          text: `❌ ${errorMessage}`
+        }],
+        isError: true,
+      };
+    }
+  }
+
+  /**
+   * JIRA 티켓 검색 (JQL 사용, 캐싱 적용)
+   */
+  private async handleSearchJiraTickets(args: { jql: string; maxResults?: number }) {
+    if (!this.jiraClient) {
+      return {
+        content: [{
+          type: 'text',
+          text: '❌ JIRA 설정이 없습니다. 환경 변수를 설정하고 서버를 재시작하세요.'
+        }],
+        isError: true,
+      };
+    }
+
+    try {
+      const maxResults = args.maxResults || 10;
+      const cacheKey = this.generateCacheKey(`jira-search`, { jql: args.jql, maxResults });
+      
+      // 캐시 확인
+      const cachedResults = this.getCachedData(cacheKey);
+      if (cachedResults) {
+        return {
+          content: [{
+            type: 'text',
+            text: this.formatJiraSearchResponse(cachedResults, '캐시에서 조회')
+          }]
+        };
+      }
+
+      // JIRA API 호출
+      const response = await this.jiraClient.post('/search', {
+        jql: args.jql,
+        maxResults: maxResults,
+        fields: ['key', 'summary', 'status', 'assignee', 'priority', 'created', 'updated', 'description']
+      });
+
+      const searchResults = response.data;
+
+      // 캐시 저장
+      this.setCachedData(cacheKey, searchResults);
+
+      return {
+        content: [{
+          type: 'text',
+          text: this.formatJiraSearchResponse(searchResults, 'JIRA에서 검색')
+        }]
+      };
+    } catch (error: any) {
+      return {
+        content: [{
+          type: 'text',
+          text: `❌ JIRA 검색 실패: ${error.message}`
+        }],
+        isError: true,
+      };
+    }
+  }
+
+  /**
+   * JIRA 티켓 응답 포맷팅
+   */
+  private formatJiraTicketResponse(ticket: any, source: string): string {
+    const assignee = ticket.fields.assignee ? ticket.fields.assignee.displayName : '미배정';
+    const status = ticket.fields.status.name;
+    const priority = ticket.fields.priority?.name || '없음';
+    const created = new Date(ticket.fields.created).toLocaleString('ko-KR');
+    const updated = new Date(ticket.fields.updated).toLocaleString('ko-KR');
+
+    let response = `🎫 **JIRA 티켓 정보** (${source})
+
+**📋 기본 정보**
+- **티켓 키**: ${ticket.key}
+- **제목**: ${ticket.fields.summary}
+- **상태**: ${status}
+- **담당자**: ${assignee}
+- **우선순위**: ${priority}
+- **생성일**: ${created}
+- **수정일**: ${updated}
+
+**📝 설명**
+${ticket.fields.description || '설명 없음'}`;
+
+    // 댓글 포함
+    if (ticket.fields.comments?.comments?.length > 0) {
+      response += `\n\n**💬 댓글 (${ticket.fields.comments.comments.length}개)**`;
+      ticket.fields.comments.comments.slice(0, 3).forEach((comment: any, index: number) => {
+        const author = comment.author.displayName;
+        const created = new Date(comment.created).toLocaleString('ko-KR');
+        response += `\n\n${index + 1}. **${author}** (${created})\n${comment.body}`;
+      });
+      
+      if (ticket.fields.comments.comments.length > 3) {
+        response += `\n\n... 외 ${ticket.fields.comments.comments.length - 3}개 댓글`;
+      }
+    }
+
+    // 하위 작업 포함
+    if (ticket.fields.subtasks?.length > 0) {
+      response += `\n\n**📋 하위 작업 (${ticket.fields.subtasks.length}개)**`;
+      ticket.fields.subtasks.forEach((subtask: any, index: number) => {
+        response += `\n${index + 1}. **${subtask.key}**: ${subtask.fields.summary} (${subtask.fields.status.name})`;
+      });
+    }
+
+    return response;
+  }
+
+  /**
+   * JIRA 검색 결과 포맷팅
+   */
+  private formatJiraSearchResponse(searchResults: any, source: string): string {
+    const total = searchResults.total;
+    const issues = searchResults.issues || [];
+
+    let response = `🔍 **JIRA 검색 결과** (${source})
+
+**📊 검색 통계**
+- **총 결과**: ${total}개
+- **표시된 결과**: ${issues.length}개
+
+**📋 티켓 목록**`;
+
+    if (issues.length === 0) {
+      response += '\n검색 결과가 없습니다.';
+      return response;
+    }
+
+    issues.forEach((issue: any, index: number) => {
+      const assignee = issue.fields.assignee ? issue.fields.assignee.displayName : '미배정';
+      const status = issue.fields.status.name;
+      const priority = issue.fields.priority?.name || '없음';
+      const created = new Date(issue.fields.created).toLocaleDateString('ko-KR');
+
+      response += `\n\n**${index + 1}. ${issue.key}**
+- **제목**: ${issue.fields.summary}
+- **상태**: ${status}
+- **담당자**: ${assignee}
+- **우선순위**: ${priority}
+- **생성일**: ${created}`;
+
+      if (issue.fields.description) {
+        const description = issue.fields.description.length > 100 
+          ? issue.fields.description.substring(0, 100) + '...'
+          : issue.fields.description;
+        response += `\n- **설명**: ${description}`;
+      }
+    });
+
+    return response;
+  }
+
+  /**
    * 사이트 목록 조회
    */
   private async handleListAvailableSites() {
@@ -606,8 +907,9 @@ ${sites.map((site: any) =>
     console.error(`📡 Backend API: ${this.BACKEND_API_URL}`);
     console.error(`📁 캐시 디렉토리: ${this.CACHE_DIR}`);
     console.error(`⏰ 캐시 TTL: ${this.CACHE_TTL / 1000}초`);
-    console.error(`🎯 영향도 분석서 생성 전용 서버`);
-    console.error(`⚡ 워크플로우: 사용자 요청 → MCP → 백엔드(캐싱) → SQLite → 템플릿 → LLM 분석`);
+    console.error(`🔗 JIRA 연동: ${this.jiraClient ? '✅ 활성화' : '❌ 비활성화'}`);
+    console.error(`🎯 영향도 분석서 생성 + JIRA 요구사항 조회 서버`);
+    console.error(`⚡ 워크플로우: 사용자 요청 → MCP → 백엔드(캐싱) + JIRA → SQLite → 템플릿 → LLM 분석`);
   }
 }
 
