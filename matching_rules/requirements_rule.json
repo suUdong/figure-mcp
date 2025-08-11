@@ -1,0 +1,9 @@
+{
+  "mcp_request_type": "requirements_doc",
+  "template_type": "REQUIREMENTS",
+  "template_id": "e506a13b-5adc-4771-89ed-81a0500e3a89",
+  "site_id": "1d628988-ab53-4dea-afdd-fe0bbfc255c3",
+  "priority": 1,
+  "is_active": true,
+  "description": "요구사항 정의서 템플릿 매칭 룰"
+}

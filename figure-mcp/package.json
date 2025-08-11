@@ -7,17 +7,21 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/figure-mcp-server.js",
-    "start:legacy": "node dist/proxy-server.js",
     "dev": "tsc && node dist/figure-mcp-server.js",
-    "dev:legacy": "tsc && node dist/proxy-server.js",
     "prepare": "npm run build"
   },
-  "keywords": ["mcp", "figure", "impact-analysis", "development-standards"],
+  "keywords": [
+    "mcp",
+    "figure",
+    "impact-analysis",
+    "development-standards"
+  ],
   "author": "Figure Team",
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^0.6.0",
-    "axios": "^1.7.7"
+    "axios": "^1.7.7",
+    "dotenv": "^17.2.1"
   },
   "devDependencies": {
     "@types/node": "^22.5.0",

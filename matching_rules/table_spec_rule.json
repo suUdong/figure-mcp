@@ -1,0 +1,9 @@
+{
+  "mcp_request_type": "table_specification",
+  "template_type": "TABLE_SPECIFICATION",
+  "template_id": "10b959dc-6ebd-4daf-b22a-edd601ade1ae",
+  "site_id": "1d628988-ab53-4dea-afdd-fe0bbfc255c3",
+  "priority": 1,
+  "is_active": true,
+  "description": "테이블 명세서 템플릿 매칭 룰"
+}

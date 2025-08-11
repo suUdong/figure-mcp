@@ -37,24 +37,14 @@ type ViewMode = 'grid' | 'list';
 type SortField = 'name' | 'date' | 'size' | 'status';
 type SortOrder = 'asc' | 'desc';
 
-// 템플릿 타입 매핑
-const TEMPLATE_TYPES = {
-  'REQUIREMENTS': '요구사항 정의서',
-  'IMPACT_ANALYSIS': '영향도 분석서',
-  'API_DOCUMENTATION': 'API 문서',
-  'DEPLOYMENT_GUIDE': '배포 가이드',
-  'TEST_PLAN': '테스트 계획서',
-  'TECHNICAL_SPECIFICATION': '기술 명세서',
-  'USER_MANUAL': '사용자 매뉴얼',
-  'RELEASE_NOTES': '릴리즈 노트',
-  'CUSTOM': '사용자 정의'
-};
+// 템플릿 타입 상수 import (전체 23개 문서 타입 지원)
+import { TEMPLATE_TYPES } from '@/lib/constants/template-types';
 
 interface FilterOptions {
   type: 'all' | 'pdf' | 'txt' | 'doc' | 'docx';
   status: 'all' | 'processed' | 'processing' | 'failed' | 'pending';
   dateRange: 'all' | 'today' | 'week' | 'month';
-  templateType: 'all' | 'REQUIREMENTS' | 'IMPACT_ANALYSIS' | 'API_DOCUMENTATION' | 'DEPLOYMENT_GUIDE' | 'TEST_PLAN' | 'TECHNICAL_SPECIFICATION' | 'USER_MANUAL' | 'RELEASE_NOTES' | 'CUSTOM';
+  templateType: 'all' | keyof typeof TEMPLATE_TYPES;
   siteId: string;
 }
 

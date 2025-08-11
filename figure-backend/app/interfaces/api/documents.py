@@ -47,14 +47,42 @@ SUPPORTED_EXTENSIONS = {
 
 # 프론트엔드 템플릿 타입 매핑
 FRONTEND_TEMPLATE_TYPE_MAPPING = {
+    # 1단계: 요구사항 분석
     'REQUIREMENTS': 'requirements',
+    'BUSINESS_REQUIREMENTS': 'business-requirements',
+    'FUNCTIONAL_SPECIFICATION': 'functional-specification',
+    
+    # 2단계: 설계
+    'TECHNICAL_SPECIFICATION': 'technical-specification',
+    'SYSTEM_ARCHITECTURE': 'system-architecture',
+    'DATABASE_DESIGN': 'database-design',
+    'TABLE_SPECIFICATION': 'table-specification',
+    'API_SPECIFICATION': 'api-specification',
+    'UI_UX_DESIGN': 'ui-ux-design',
+    
+    # 3단계: 개발
     'IMPACT_ANALYSIS': 'impact-analysis',
     'API_DOCUMENTATION': 'api-documentation',
-    'DEPLOYMENT_GUIDE': 'deployment-guide',
+    'CODE_REVIEW_CHECKLIST': 'code-review-checklist',
+    
+    # 4단계: 테스트
     'TEST_PLAN': 'test-plan',
-    'TECHNICAL_SPECIFICATION': 'technical-specification',
+    'TEST_SCENARIO': 'test-scenario',
+    'TEST_CASE': 'test-case',
+    'QA_CHECKLIST': 'qa-checklist',
+    
+    # 5단계: 배포
+    'DEPLOYMENT_GUIDE': 'deployment-guide',
+    'DEPLOYMENT_CHECKLIST': 'deployment-checklist',
+    'ROLLBACK_PLAN': 'rollback-plan',
+    'MONITORING_PLAN': 'monitoring-plan',
+    
+    # 6단계: 운영
     'USER_MANUAL': 'user-manual',
     'RELEASE_NOTES': 'release-notes',
+    'OPERATION_MANUAL': 'operation-manual',
+    'TROUBLESHOOTING_GUIDE': 'troubleshooting-guide',
+    
     'CUSTOM': 'custom'
 }
 

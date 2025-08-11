@@ -33,30 +33,8 @@ interface TemplateMatchingRuleResponse {
   can_delete: boolean;
 }
 
-// MCP 요청 타입 매핑
-const MCP_REQUEST_TYPES = {
-  'impact_analysis': '영향도 분석서',
-  'requirements_doc': '요구사항 정의서',
-  'api_documentation': 'API 문서',
-  'deployment_guide': '배포 가이드',
-  'test_plan': '테스트 계획서',
-  'technical_spec': '기술 명세서',
-  'user_manual': '사용자 매뉴얼',
-  'release_notes': '릴리즈 노트'
-};
-
-// 템플릿 타입 매핑
-const TEMPLATE_TYPES = {
-  'REQUIREMENTS': '요구사항 정의서',
-  'IMPACT_ANALYSIS': '영향도 분석서',
-  'API_DOCUMENTATION': 'API 문서',
-  'DEPLOYMENT_GUIDE': '배포 가이드',
-  'TEST_PLAN': '테스트 계획서',
-  'TECHNICAL_SPECIFICATION': '기술 명세서',
-  'USER_MANUAL': '사용자 매뉴얼',
-  'RELEASE_NOTES': '릴리즈 노트',
-  'CUSTOM': '사용자 정의'
-};
+// 템플릿 타입 상수 import (전체 23개 문서 타입 지원)
+import { TEMPLATE_TYPES, MCP_REQUEST_TYPES, MCP_TO_TEMPLATE_TYPE_MAP } from '@/lib/constants/template-types';
 
 interface Site {
   id: string;
@@ -123,18 +101,7 @@ export default function TemplateMatchingPage() {
       
       // MCP 요청 타입이 선택되었으면 해당 템플릿 타입으로 필터링
       if (mcpRequestType) {
-        const templateTypeMap: { [key: string]: string } = {
-          'impact_analysis': 'IMPACT_ANALYSIS',
-          'requirements_doc': 'REQUIREMENTS',
-          'api_documentation': 'API_DOCUMENTATION',
-          'deployment_guide': 'DEPLOYMENT_GUIDE',
-          'test_plan': 'TEST_PLAN',
-          'technical_spec': 'TECHNICAL_SPECIFICATION',
-          'user_manual': 'USER_MANUAL',
-          'release_notes': 'RELEASE_NOTES'
-        };
-        
-        const templateType = templateTypeMap[mcpRequestType];
+        const templateType = MCP_TO_TEMPLATE_TYPE_MAP[mcpRequestType];
         if (templateType) {
           params.template_type = templateType;
         }
