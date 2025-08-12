@@ -1,13 +1,16 @@
-version: "3.8"
-
 services:
   # Figure Backend Office (Admin UI)
   figure-backend-office:
+    container_name: figure-office
     build:
       context: ./figure-backend-office
       dockerfile: Dockerfile
     ports:
       - "3001:3001"
+    # 🚀 Context7 기반: 메모리 제한 설정 최적화
+    mem_limit: 3g
+    mem_reservation: 1.5g
+    cpus: 2
     environment:
       - NODE_ENV=development
       - PORT=3001
@@ -15,14 +18,22 @@ services:
       - BACKEND_API_URL=http://figure-backend:8001
       - NEXT_PUBLIC_API_URL=http://localhost:8001
       - NEXT_TELEMETRY_DISABLED=1
+      # Watchpack 성능 최적화 설정 (속도 우선)
       - WATCHPACK_POLLING=true
       - CHOKIDAR_USEPOLLING=true
-      # Fast Refresh 성능 최적화
-      - FAST_REFRESH=true
-      - WEBPACK_USEPOLLING=1000
-      - WEBPACK_AGGREGATETIMEOUT=200
-      # 페이지 워밍업 활성화
-      - ENABLE_WARMUP=true
+      - CHOKIDAR_INTERVAL=5000
+      - CHOKIDAR_BINARYINTERVAL=10000
+      # Fast Refresh 성능 최적화 (속도 개선)
+      - FAST_REFRESH=false
+      - WEBPACK_USEPOLLING=5000
+      - WEBPACK_AGGREGATETIMEOUT=1000
+      # 🚀 Context7 기반: Node.js 메모리 설정 강화
+      - NODE_OPTIONS=--max-old-space-size=2048 --max-semi-space-size=128
+      # 페이지 워밍업 완전 비활성화 (메모리 절약)
+      - ENABLE_WARMUP=false
+      # 파일 감시 최적화
+      - WATCHPACK_POLLING_INTERVAL=2000
+      - NEXT_CONFIG_MODE=minimal
     volumes:
       - ./figure-backend-office:/app
       - /app/node_modules
@@ -45,35 +56,34 @@ services:
       retries: 3
       start_period: 40s
 
-  # Figure MCP Server (Production Only - 개발시에는 figure-mcp-proxy 사용)
-  figure-mcp-server:
-    build:
-      context: ./figure-mcp-server
-      dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
-    environment:
-      - NODE_ENV=production
-      - BACKEND_API_URL=http://figure-backend:8001/api
-    # volumes: # 운영환경에서는 볼륨 마운트 제거
-    #   - ./figure-mcp-server:/app
-    #   - /app/node_modules
-    depends_on:
-      figure-backend:
-        condition: service_healthy
-    networks:
-      - figure-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    profiles:
-      - production # 프로파일 추가로 선택적 실행
+  # Figure MCP Server (Production Only - 현재 Dockerfile 없음으로 비활성화)
+  # figure-mcp-server:
+  #   container_name: figure-mcp
+  #   build:
+  #     context: ./figure-mcp
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     - NODE_ENV=production
+  #     - BACKEND_API_URL=http://figure-backend:8001/api
+  #   depends_on:
+  #     figure-backend:
+  #       condition: service_healthy
+  #   networks:
+  #     - figure-network
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #   profiles:
+  #     - production # 프로파일 추가로 선택적 실행
 
   # Figure Backend API
   figure-backend:
+    container_name: figure-backend
     build:
       context: ./figure-backend
       dockerfile: Dockerfile
@@ -162,6 +172,7 @@ services:
 
   # ChromaDB Vector Database
   chroma:
+    container_name: figure-chroma
     image: chromadb/chroma:latest
     ports:
       - "8000:8000"
@@ -181,6 +192,7 @@ services:
 
   # Redis (선택사항 - 캐싱/세션 관리용)
   redis:
+    container_name: figure-redis
     image: redis:7-alpine
     ports:
       - "6379:6379"
