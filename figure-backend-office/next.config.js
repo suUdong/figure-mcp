@@ -8,16 +8,17 @@ const nextConfig = {
   ...(process.env.NODE_ENV === "production" && { output: "standalone" }),
 
   // 🚀 Context7 추천: 강력한 성능 최적화
-  experimental: {
-    // ⚡ Next.js 15+ Turbopack 지원 (개발 속도 대폭 향상)
-    turbo: {
-      rules: {
-        '*.svg': {
-          loaders: ['@svgr/webpack'],
-          as: '*.js',
-        },
+  // ⚡ Turbopack 설정 (Next.js 15+ 안정화)
+  turbopack: {
+    rules: {
+      '*.svg': {
+        loaders: ['@svgr/webpack'],
+        as: '*.js',
       },
     },
+  },
+
+  experimental: {
     // ⚡ Next.js 15+ Webpack 메모리 최적화 (Context7 제안) - 메모리 사용량 대폭 감소
     webpackMemoryOptimizations: true,
     // ⚡ Webpack Build Worker 활성화 (Context7 제안) - 별도 워커에서 컴파일
@@ -37,12 +38,7 @@ const nextConfig = {
     ],
     // 빌드 최적화
     optimizeCss: false,
-    esmExternals: false,
     workerThreads: false,
-    // Turbo trace 최적화
-    turbotrace: {
-      logLevel: "error",
-    },
     // 🎯 Context7 추천: 서버 컴포넌트 HMR 캐시 (개발 성능 대폭 향상)
     serverComponentsHmrCache: true,
   },

@@ -1,0 +1,76 @@
+{
+  "environment": "staging",
+  "description": "스테이징 환경 설정",
+  "site": {
+    "id": "2e739099-bc64-4efb-bfee-gf1ccgd366d4",
+    "name": "Figure MCP 스테이징 환경",
+    "description": "운영 배포 전 테스트를 위한 Figure MCP 사이트",
+    "url": "https://staging.figure-mcp.example.com",
+    "api_endpoint": "https://api-staging.figure-mcp.example.com",
+    "is_active": true,
+    "debug_mode": false,
+    "settings": {
+      "default_language": "ko",
+      "timezone": "Asia/Seoul",
+      "date_format": "YYYY-MM-DD",
+      "time_format": "HH:mm:ss",
+      "log_level": "info",
+      "enable_cors": true,
+      "enable_swagger": true
+    }
+  },
+  "database": {
+    "type": "postgresql",
+    "host": "staging-db.internal",
+    "port": 5432,
+    "database": "figure_staging",
+    "username": "${DB_USERNAME}",
+    "password": "${DB_PASSWORD}",
+    "auto_migrate": true,
+    "seed_data": true,
+    "connection_pool": {
+      "min": 2,
+      "max": 10
+    }
+  },
+  "redis": {
+    "host": "staging-redis.internal",
+    "port": 6379,
+    "db": 1,
+    "password": "${REDIS_PASSWORD}"
+  },
+  "chroma": {
+    "host": "staging-chroma.internal",
+    "port": 8000,
+    "collection_name": "figure_documents_staging"
+  },
+  "features": {
+    "template_caching": true,
+    "auto_backup": true,
+    "performance_monitoring": true,
+    "error_reporting": true
+  },
+  "security": {
+    "jwt_secret": "${JWT_SECRET}",
+    "session_timeout": 1800,
+    "rate_limiting": true,
+    "cors_origins": ["https://staging.figure-mcp.example.com"]
+  },
+  "logging": {
+    "level": "info",
+    "file_path": "/var/log/figure-mcp/staging.log",
+    "console_output": false,
+    "structured_logging": true
+  },
+  "monitoring": {
+    "health_check_interval": 30,
+    "metrics_collection": true,
+    "alert_webhook": "${ALERT_WEBHOOK_URL}"
+  },
+  "metadata": {
+    "created_at": "2024-08-13T00:00:00Z",
+    "created_by": "system",
+    "version": "1.0.0",
+    "tags": ["staging", "pre-production", "testing"]
+  }
+}

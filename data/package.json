@@ -1,0 +1,49 @@
+{
+  "name": "figure-mcp-data-management",
+  "version": "1.0.0",
+  "description": "Figure MCP 시스템 데이터 관리 및 초기화 도구",
+  "main": "scripts/init-system.js",
+  "scripts": {
+    "init": "node scripts/init-system.js",
+    "init:dev": "node scripts/init-system.js development",
+    "init:staging": "node scripts/init-system.js staging",
+    "init:prod": "node scripts/init-system.js production",
+    "seed": "node scripts/seed-database.js",
+    "seed:dev": "node scripts/seed-database.js development seed",
+    "seed:staging": "node scripts/seed-database.js staging seed",
+    "seed:prod": "node scripts/seed-database.js production seed",
+    "reset": "node scripts/seed-database.js development reset",
+    "reset:staging": "node scripts/seed-database.js staging reset",
+    "reset:prod": "node scripts/seed-database.js production reset",
+    "validate": "node scripts/validate-data.js",
+    "backup": "node scripts/backup-data.js",
+    "restore": "node scripts/restore-data.js"
+  },
+  "keywords": [
+    "figure-mcp",
+    "data-management",
+    "initialization",
+    "seeding",
+    "templates",
+    "matching-rules"
+  ],
+  "author": "Figure MCP Team",
+  "license": "MIT",
+  "dependencies": {
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/figure-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-org/figure-mcp/issues"
+  },
+  "homepage": "https://github.com/your-org/figure-mcp#readme"
+}

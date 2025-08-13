@@ -1,8 +1,8 @@
 {
   "mcp_request_type": "api_documentation",
   "template_type": "API_DOCUMENTATION",
-  "template_id": "796c975f-d35d-42bf-a2b0-d6ee676eadcf",
-  "site_id": "1d628988-ab53-4dea-afdd-fe0bbfc255c3",
+  "template_id": "tmpl-api-doc-0000-0000-0000-000000000001",
+  "site_id": "site-default-0000-0000-0000-000000000001",
   "priority": 1,
   "is_active": true,
   "description": "API 문서 템플릿 매칭 룰"

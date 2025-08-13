@@ -1,0 +1,113 @@
+{
+  "environment": "production",
+  "description": "운영 환경 설정",
+  "site": {
+    "id": "3f84a1aa-cd75-5fgc-cgff-hg2ddhe477e5",
+    "name": "Figure MCP 운영 환경",
+    "description": "실제 서비스를 위한 Figure MCP 사이트",
+    "url": "https://figure-mcp.example.com",
+    "api_endpoint": "https://api.figure-mcp.example.com",
+    "is_active": true,
+    "debug_mode": false,
+    "settings": {
+      "default_language": "ko",
+      "timezone": "Asia/Seoul",
+      "date_format": "YYYY-MM-DD",
+      "time_format": "HH:mm:ss",
+      "log_level": "warn",
+      "enable_cors": false,
+      "enable_swagger": false
+    }
+  },
+  "database": {
+    "type": "postgresql",
+    "host": "prod-db-cluster.internal",
+    "port": 5432,
+    "database": "figure_production",
+    "username": "${DB_USERNAME}",
+    "password": "${DB_PASSWORD}",
+    "auto_migrate": false,
+    "seed_data": false,
+    "connection_pool": {
+      "min": 5,
+      "max": 50
+    },
+    "ssl": {
+      "enabled": true,
+      "ca_cert": "${DB_CA_CERT}",
+      "client_cert": "${DB_CLIENT_CERT}",
+      "client_key": "${DB_CLIENT_KEY}"
+    }
+  },
+  "redis": {
+    "host": "prod-redis-cluster.internal",
+    "port": 6379,
+    "db": 0,
+    "password": "${REDIS_PASSWORD}",
+    "cluster_mode": true,
+    "ssl": true
+  },
+  "chroma": {
+    "host": "prod-chroma-cluster.internal",
+    "port": 8000,
+    "collection_name": "figure_documents_production",
+    "auth_token": "${CHROMA_AUTH_TOKEN}"
+  },
+  "features": {
+    "template_caching": true,
+    "auto_backup": true,
+    "performance_monitoring": true,
+    "error_reporting": true
+  },
+  "security": {
+    "jwt_secret": "${JWT_SECRET}",
+    "session_timeout": 900,
+    "rate_limiting": true,
+    "rate_limit": {
+      "requests_per_minute": 60,
+      "burst_limit": 100
+    },
+    "cors_origins": ["https://figure-mcp.example.com"],
+    "csrf_protection": true,
+    "helmet_config": {
+      "hsts": true,
+      "noSniff": true,
+      "xssFilter": true
+    }
+  },
+  "logging": {
+    "level": "warn",
+    "file_path": "/var/log/figure-mcp/production.log",
+    "console_output": false,
+    "structured_logging": true,
+    "log_rotation": {
+      "max_size": "100MB",
+      "max_files": 10
+    }
+  },
+  "monitoring": {
+    "health_check_interval": 15,
+    "metrics_collection": true,
+    "alert_webhook": "${ALERT_WEBHOOK_URL}",
+    "performance_threshold": {
+      "response_time_ms": 500,
+      "error_rate_percent": 1
+    }
+  },
+  "backup": {
+    "enabled": true,
+    "schedule": "0 2 * * *",
+    "retention_days": 30,
+    "storage": {
+      "type": "s3",
+      "bucket": "${BACKUP_S3_BUCKET}",
+      "region": "${AWS_REGION}"
+    }
+  },
+  "metadata": {
+    "created_at": "2024-08-13T00:00:00Z",
+    "created_by": "system",
+    "version": "1.0.0",
+    "tags": ["production", "live", "critical"]
+  }
+}
