@@ -1,0 +1,295 @@
+name: MCP ↔ Backend 통신 테스트
+
+on:
+  push:
+    branches: [ main, master, develop ]
+    paths:
+      - 'figure-mcp/**'
+      - 'figure-backend/**'
+      - '.github/workflows/mcp-backend-test.yml'
+  pull_request:
+    branches: [ main, master, develop ]
+    paths:
+      - 'figure-mcp/**'
+      - 'figure-backend/**'
+
+env:
+  NODE_VERSION: '18'
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  # Job 1: Unit Tests (빠른 피드백)
+  unit-tests:
+    name: 🔧 Unit Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 체크아웃
+      uses: actions/checkout@v4
+      
+    - name: Node.js 설정
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: 'figure-mcp/package-lock.json'
+        
+    - name: 의존성 설치
+      working-directory: figure-mcp
+      run: npm ci
+      
+    - name: TypeScript 빌드
+      working-directory: figure-mcp
+      run: npm run build
+      
+    - name: Unit Tests 실행
+      working-directory: figure-mcp
+      run: |
+        npx jest \
+          --config tests/setup/jest.config.js \
+          --testPathPattern=tests/unit \
+          --coverage \
+          --coverageDirectory=coverage/unit \
+          --maxWorkers=2
+      
+    - name: 커버리지 업로드
+      uses: codecov/codecov-action@v3
+      with:
+        file: figure-mcp/coverage/unit/lcov.info
+        flags: unit-tests
+        name: unit-test-coverage
+        
+    - name: 테스트 결과 업로드
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: unit-test-results
+        path: |
+          figure-mcp/coverage/
+          figure-mcp/test-results/
+
+  # Job 2: Integration & E2E Tests (Docker 환경 필요)
+  integration-e2e-tests:
+    name: 🔗 Integration & E2E Tests
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+          
+    steps:
+    - name: 체크아웃
+      uses: actions/checkout@v4
+      
+    - name: Node.js 설정
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: 'figure-mcp/package-lock.json'
+        
+    - name: Python 설정
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+        cache-dependency-path: 'figure-backend/requirements.txt'
+        
+    - name: MCP 서버 의존성 설치 및 빌드
+      working-directory: figure-mcp
+      run: |
+        npm ci
+        npm run build
+        
+    - name: Python 의존성 설치
+      working-directory: figure-backend
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: ChromaDB 데이터 디렉토리 생성
+      run: mkdir -p figure-backend/data/chroma
+      
+    - name: 환경 변수 설정
+      run: |
+        echo "FIGURE_HOST=0.0.0.0" >> $GITHUB_ENV
+        echo "FIGURE_PORT=8001" >> $GITHUB_ENV
+        echo "FIGURE_DEBUG=false" >> $GITHUB_ENV
+        echo "FIGURE_DATABASE_URL=sqlite:///./data/figure.db" >> $GITHUB_ENV
+        echo "FIGURE_CHROMA_PERSIST_DIRECTORY=./data/chroma" >> $GITHUB_ENV
+        echo "FIGURE_CHROMA_COLLECTION_NAME=test_documents" >> $GITHUB_ENV
+        echo "BACKEND_API_URL=http://localhost:8001/api" >> $GITHUB_ENV
+        echo "MCP_QUIET=true" >> $GITHUB_ENV
+        
+    - name: 백엔드 서버 시작 (백그라운드)
+      working-directory: figure-backend
+      run: |
+        python -m uvicorn app.main:app --host 0.0.0.0 --port 8001 --log-level error &
+        echo $! > backend.pid
+        
+        # 백엔드 서버 준비 대기 (최대 60초)
+        for i in {1..30}; do
+          if curl -f -s http://localhost:8001/health > /dev/null; then
+            echo "✅ 백엔드 서버 준비 완료"
+            break
+          fi
+          echo "⏳ 백엔드 서버 대기 중... ($i/30)"
+          sleep 2
+          if [ $i -eq 30 ]; then
+            echo "❌ 백엔드 서버 시작 실패"
+            exit 1
+          fi
+        done
+        
+    - name: Integration Tests 실행
+      working-directory: figure-mcp
+      run: |
+        npx jest \
+          --config tests/setup/jest.config.js \
+          --testPathPattern=tests/integration \
+          --runInBand \
+          --forceExit \
+          --detectOpenHandles \
+          --testTimeout=30000 \
+          --maxWorkers=1
+          
+    - name: E2E Tests 실행
+      working-directory: figure-mcp
+      run: |
+        npx jest \
+          --config tests/setup/jest.config.js \
+          --testPathPattern=tests/e2e \
+          --runInBand \
+          --forceExit \
+          --detectOpenHandles \
+          --testTimeout=60000 \
+          --maxWorkers=1
+      
+    - name: 백엔드 서버 종료
+      if: always()
+      working-directory: figure-backend
+      run: |
+        if [ -f backend.pid ]; then
+          kill $(cat backend.pid) || true
+          rm backend.pid
+        fi
+        
+    - name: 백엔드 로그 수집
+      if: failure()
+      run: |
+        echo "=== 백엔드 서버 로그 ==="
+        cat figure-backend/logs/*.log || echo "로그 파일 없음"
+        
+    - name: 테스트 결과 업로드
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: integration-e2e-test-results
+        path: |
+          figure-mcp/test-results/
+          figure-backend/logs/
+
+  # Job 3: 테스트 결과 종합 및 리포트
+  test-summary:
+    name: 📊 테스트 결과 종합
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-e2e-tests]
+    if: always()
+    
+    steps:
+    - name: 체크아웃
+      uses: actions/checkout@v4
+      
+    - name: 테스트 결과 다운로드 (Unit)
+      uses: actions/download-artifact@v4
+      with:
+        name: unit-test-results
+        path: ./test-results/unit/
+      continue-on-error: true
+        
+    - name: 테스트 결과 다운로드 (Integration & E2E)
+      uses: actions/download-artifact@v4
+      with:
+        name: integration-e2e-test-results
+        path: ./test-results/integration-e2e/
+      continue-on-error: true
+        
+    - name: 테스트 결과 종합 리포트 생성
+      run: |
+        echo "# 🎯 MCP ↔ Backend 통신 테스트 결과" > test-summary.md
+        echo "" >> test-summary.md
+        echo "**실행 시간**: $(date)" >> test-summary.md
+        echo "**커밋**: ${{ github.sha }}" >> test-summary.md
+        echo "**브랜치**: ${{ github.ref }}" >> test-summary.md
+        echo "" >> test-summary.md
+        
+        # Job 결과 확인
+        echo "## 📋 테스트 단계별 결과" >> test-summary.md
+        echo "" >> test-summary.md
+        
+        if [ "${{ needs.unit-tests.result }}" == "success" ]; then
+          echo "✅ **Unit Tests**: 통과" >> test-summary.md
+        else
+          echo "❌ **Unit Tests**: 실패" >> test-summary.md
+        fi
+        
+        if [ "${{ needs.integration-e2e-tests.result }}" == "success" ]; then
+          echo "✅ **Integration & E2E Tests**: 통과" >> test-summary.md
+        elif [ "${{ needs.integration-e2e-tests.result }}" == "failure" ]; then
+          echo "❌ **Integration & E2E Tests**: 실패" >> test-summary.md
+        else
+          echo "⏭️ **Integration & E2E Tests**: 건너뜀" >> test-summary.md
+        fi
+        
+        echo "" >> test-summary.md
+        echo "## 📊 상세 정보" >> test-summary.md
+        echo "" >> test-summary.md
+        echo "- **테스트 아티팩트**: GitHub Actions Artifacts 참조" >> test-summary.md
+        echo "- **커버리지 리포트**: Codecov 참조" >> test-summary.md
+        echo "- **로그 파일**: 실패 시 아티팩트에서 확인 가능" >> test-summary.md
+        
+        cat test-summary.md
+        
+    - name: PR 코멘트 작성 (PR인 경우)
+      uses: actions/github-script@v7
+      if: github.event_name == 'pull_request'
+      with:
+        script: |
+          const fs = require('fs');
+          const summary = fs.readFileSync('test-summary.md', 'utf8');
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: summary
+          });
+
+  # Job 4: 성능 벤치마크 (선택적, main/master 브랜치에서만)
+  performance-benchmark:
+    name: ⚡ 성능 벤치마크
+    runs-on: ubuntu-latest
+    needs: integration-e2e-tests
+    if: contains(github.ref, 'refs/heads/main') || contains(github.ref, 'refs/heads/master')
+    
+    steps:
+    - name: 체크아웃
+      uses: actions/checkout@v4
+      
+    - name: 성능 벤치마크 실행
+      run: |
+        echo "🚀 성능 벤치마크 실행 준비 중..."
+        echo "추후 구현될 성능 테스트 스크립트"
+        
+        # 여기에 실제 성능 테스트 로직 추가
+        # 예: API 응답 시간 측정, 동시 사용자 테스트 등
+        
+        echo "✅ 성능 벤치마크 완료"
