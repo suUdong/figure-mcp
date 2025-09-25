@@ -1,0 +1,32 @@
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "figure-backend/Dockerfile"
+
+[deploy]
+healthcheckPath = "/health"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
+
+[[services]]
+[services.figure-backend]
+source = "."
+variables = { NODE_ENV = "production" }
+
+[services.figure-backend.healthcheck]
+path = "/health"
+timeout = 300
+
+# Environment Variables (Railway Secrets에서 설정)
+# CLAUDE_API_KEY
+# GEMINI_API_KEY  
+# SUPABASE_URL
+# SUPABASE_ANON_KEY
+# SUPABASE_SERVICE_ROLE_KEY
+# SUPABASE_DB_HOST
+# SUPABASE_DB_USER  
+# SUPABASE_DB_PASSWORD
+# SUPABASE_DB_NAME
+# CHROMA_URL
+# REDIS_URL
+# JWT_SECRET

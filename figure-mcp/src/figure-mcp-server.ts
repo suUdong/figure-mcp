@@ -1092,102 +1092,102 @@ create_table_specification:
   private parseDocumentRequest(request: string): { documentType: string | null; featureName: string } {
     const normalizedRequest = request.toLowerCase().trim();
     
-    // 문서 타입 매칭 패턴들
+    // 문서 타입 매칭 패턴들 (MCPRequestType 형식)
     const documentPatterns: { [key: string]: string[] } = {
-      'TABLE_SPECIFICATION': [
+      'table_specification': [
         '테이블 명세서', '테이블명세서', 'table spec', 'table specification',
         '테이블 설계서', '테이블설계서', 'db 명세서', '데이터베이스 명세서',
         '테이블 구조', '스키마 명세서', 'schema spec'
       ],
-      'REQUIREMENTS': [
+      'requirements_doc': [
         '요구사항서', '요구사항 정의서', '요구사항분석서', 'requirements',
         '요구 사항서', '요구 사항 정의서', '요구 사항 분석서'
       ],
-      'BUSINESS_REQUIREMENTS': [
+      'business_requirements': [
         '비즈니스 요구사항서', '비즈니스요구사항서', 'business requirements',
         '업무 요구사항서', '사업 요구사항서'
       ],
-      'FUNCTIONAL_SPECIFICATION': [
+      'functional_specification': [
         '기능 명세서', '기능명세서', 'functional spec', 'functional specification',
         '기능 정의서', '기능정의서'
       ],
-      'TECHNICAL_SPECIFICATION': [
+      'technical_spec': [
         '기술 명세서', '기술명세서', 'technical spec', 'technical specification',
         '기술 설계서', '기술설계서', 'tech spec'
       ],
-      'SYSTEM_ARCHITECTURE': [
+      'system_architecture': [
         '시스템 아키텍처', '시스템아키텍처', 'system architecture',
         '시스템 구조도', '아키텍처 설계서', '시스템 설계서'
       ],
-      'DATABASE_DESIGN': [
+      'database_design': [
         '데이터베이스 설계서', '데이터베이스설계서', 'database design',
         'db 설계서', '데이터베이스 구조도'
       ],
-      'API_SPECIFICATION': [
+      'api_specification': [
         'api 명세서', 'api명세서', 'api spec', 'api specification',
         'api 설계서', '인터페이스 명세서'
       ],
-      'UI_UX_DESIGN': [
+      'ui_ux_design': [
         'ui/ux 설계서', 'ui ux 설계서', 'ui 설계서', 'ux 설계서',
         '화면 설계서', '인터페이스 설계서'
       ],
-      'IMPACT_ANALYSIS': [
+      'impact_analysis': [
         '영향도 분석서', '영향도분석서', 'impact analysis',
         '영향 분석서', '파급 효과 분석서', '영향도 평가서'
       ],
-      'API_DOCUMENTATION': [
+      'api_documentation': [
         'api 문서', 'api문서', 'api documentation',
         'api 가이드', 'api 매뉴얼'
       ],
-      'CODE_REVIEW_CHECKLIST': [
+      'code_review_checklist': [
         '코드 리뷰 체크리스트', '코드리뷰 체크리스트', 'code review checklist',
         '코드 검토 체크리스트', '리뷰 체크리스트'
       ],
-      'TEST_PLAN': [
+      'test_plan': [
         '테스트 계획서', '테스트계획서', 'test plan',
         '시험 계획서', '테스트 설계서'
       ],
-      'TEST_SCENARIO': [
+      'test_scenario': [
         '테스트 시나리오', '테스트시나리오', 'test scenario',
         '시험 시나리오', '테스트 케이스 시나리오'
       ],
-      'TEST_CASE': [
+      'test_case': [
         '테스트 케이스', '테스트케이스', 'test case',
         '시험 케이스', '테스트 사례'
       ],
-      'QA_CHECKLIST': [
+      'qa_checklist': [
         'qa 체크리스트', 'qa체크리스트', 'qa checklist',
         '품질 보증 체크리스트', '품질 체크리스트'
       ],
-      'DEPLOYMENT_GUIDE': [
+      'deployment_guide': [
         '배포 가이드', '배포가이드', 'deployment guide',
         '배포 매뉴얼', '배포 문서', '릴리즈 가이드'
       ],
-      'DEPLOYMENT_CHECKLIST': [
+      'deployment_checklist': [
         '배포 체크리스트', '배포체크리스트', 'deployment checklist',
         '릴리즈 체크리스트', '배포 점검표'
       ],
-      'ROLLBACK_PLAN': [
+      'rollback_plan': [
         '롤백 계획서', '롤백계획서', 'rollback plan',
         '복구 계획서', '되돌리기 계획서'
       ],
-      'MONITORING_PLAN': [
+      'monitoring_plan': [
         '모니터링 계획서', '모니터링계획서', 'monitoring plan',
         '감시 계획서', '모니터링 설계서'
       ],
-      'USER_MANUAL': [
+      'user_manual': [
         '사용자 매뉴얼', '사용자매뉴얼', 'user manual',
         '사용 설명서', '이용 가이드', '유저 가이드'
       ],
-      'RELEASE_NOTES': [
+      'release_notes': [
         '릴리즈 노트', '릴리즈노트', 'release notes',
         '배포 노트', '버전 노트', '변경 사항'
       ],
-      'OPERATION_MANUAL': [
+      'operation_manual': [
         '운영 매뉴얼', '운영매뉴얼', 'operation manual',
         '운영 가이드', '관리 매뉴얼'
       ],
-      'TROUBLESHOOTING_GUIDE': [
+      'troubleshooting_guide': [
         '트러블슈팅 가이드', '트러블슈팅가이드', 'troubleshooting guide',
         '문제 해결 가이드', '장애 대응 가이드', '오류 해결 가이드'
       ]
@@ -1576,6 +1576,7 @@ ${schemaData}
     console.error(`⚠️  JIRA URL 형식 확인 필요: ${url}`);
     return url;
   }
+
 
   /**
    * 환경 변수 상태 로깅

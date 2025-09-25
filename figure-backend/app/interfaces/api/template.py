@@ -11,6 +11,7 @@ import io
 from app.domain.entities.template_entities import (
     Template,
     TemplateType,
+    MCPRequestType,
     TemplateCreateRequest,
     TemplateUpdateRequest,
     TemplateSearchRequest,
@@ -283,24 +284,59 @@ async def get_default_template(
 
 
 @router.get(
-    "/guide/{template_type}",
+    "/guide/{mcp_request_type}",
     response_model=APIResponse[dict],
     summary="템플릿 가이드 조회 (MCP용)",
     description="MCP 서버에서 사용할 템플릿 가이드를 조회합니다."
 )
 async def get_template_guide_for_mcp(
-    template_type: TemplateType,
+    mcp_request_type: MCPRequestType,
     site_id: Optional[str] = None,
     context: Optional[str] = None,
     service: TemplateService = Depends(get_template_service)
 ) -> APIResponse[dict]:
     """MCP용 템플릿 가이드 조회"""
     try:
+        # MCPRequestType을 TemplateType으로 매핑
+        mcp_to_template_mapping = {
+            MCPRequestType.REQUIREMENTS_DOC: TemplateType.REQUIREMENTS,
+            MCPRequestType.BUSINESS_REQUIREMENTS: TemplateType.BUSINESS_REQUIREMENTS,
+            MCPRequestType.FUNCTIONAL_SPECIFICATION: TemplateType.FUNCTIONAL_SPECIFICATION,
+            MCPRequestType.TECHNICAL_SPEC: TemplateType.TECHNICAL_SPECIFICATION,
+            MCPRequestType.SYSTEM_ARCHITECTURE: TemplateType.SYSTEM_ARCHITECTURE,
+            MCPRequestType.DATABASE_DESIGN: TemplateType.DATABASE_DESIGN,
+            MCPRequestType.TABLE_SPECIFICATION: TemplateType.TABLE_SPECIFICATION,
+            MCPRequestType.API_SPECIFICATION: TemplateType.API_SPECIFICATION,
+            MCPRequestType.UI_UX_DESIGN: TemplateType.UI_UX_DESIGN,
+            MCPRequestType.IMPACT_ANALYSIS: TemplateType.IMPACT_ANALYSIS,
+            MCPRequestType.API_DOCUMENTATION: TemplateType.API_DOCUMENTATION,
+            MCPRequestType.CODE_REVIEW_CHECKLIST: TemplateType.CODE_REVIEW_CHECKLIST,
+            MCPRequestType.TEST_PLAN: TemplateType.TEST_PLAN,
+            MCPRequestType.TEST_SCENARIO: TemplateType.TEST_SCENARIO,
+            MCPRequestType.TEST_CASE: TemplateType.TEST_CASE,
+            MCPRequestType.QA_CHECKLIST: TemplateType.QA_CHECKLIST,
+            MCPRequestType.DEPLOYMENT_GUIDE: TemplateType.DEPLOYMENT_GUIDE,
+            MCPRequestType.DEPLOYMENT_CHECKLIST: TemplateType.DEPLOYMENT_CHECKLIST,
+            MCPRequestType.ROLLBACK_PLAN: TemplateType.ROLLBACK_PLAN,
+            MCPRequestType.MONITORING_PLAN: TemplateType.MONITORING_PLAN,
+            MCPRequestType.USER_MANUAL: TemplateType.USER_MANUAL,
+            MCPRequestType.RELEASE_NOTES: TemplateType.RELEASE_NOTES,
+            MCPRequestType.OPERATION_MANUAL: TemplateType.OPERATION_MANUAL,
+            MCPRequestType.TROUBLESHOOTING_GUIDE: TemplateType.TROUBLESHOOTING_GUIDE
+        }
+        
+        template_type = mcp_to_template_mapping.get(mcp_request_type)
+        if not template_type:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"지원하지 않는 MCP 요청 타입입니다: {mcp_request_type}"
+            )
+        
         template = await service.get_default_template(template_type, site_id)
         if not template:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"{template_type.value} 유형의 기본 템플릿을 찾을 수 없습니다."
+                detail=f"{mcp_request_type} 유형의 기본 템플릿을 찾을 수 없습니다."
             )
         
         # 컨텍스트 파싱 (JSON 문자열인 경우)
