@@ -17,6 +17,7 @@ import {
   TestTube,
   Activity,
   Link as LinkIcon,
+  Target,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -56,6 +57,12 @@ const navigation: NavigationItem[] = [
     title: '사이트 관리',
     href: '/sites',
     icon: Globe,
+  },
+  {
+    title: 'LLM 지침 관리',
+    href: '/guidelines',
+    icon: Target,
+    badge: '🎯',
   },
   {
     title: 'MCP 관리',

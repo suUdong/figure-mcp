@@ -26,12 +26,14 @@ import {
   CheckCircle,
   AlertCircle,
   Clock,
-  Database
+  Database,
+  Loader2
 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { Document } from '@/types/api'
 import MainLayout from '@/components/layout/main-layout'
+import { documentsApi } from '@/lib/api'
 
 type ViewMode = 'grid' | 'list';
 type SortField = 'name' | 'date' | 'size' | 'status';
@@ -58,6 +60,11 @@ export default function DocumentsPage() {
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
   const [showFilters, setShowFilters] = useState(false)
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([])
+  
+  // 🆕 문서 내용 관련 상태
+  const [documentContent, setDocumentContent] = useState<string>('')
+  const [loadingContent, setLoadingContent] = useState(false)
+  const [contentError, setContentError] = useState<string>('')
   
   const [filters, setFilters] = useState<FilterOptions>({
     type: 'all',
@@ -92,9 +99,28 @@ export default function DocumentsPage() {
     }
   }
 
-  const handleViewDocument = (document: any) => {
+  const handleViewDocument = async (document: any) => {
     setSelectedDocument(document)
     setShowViewModal(true)
+    
+    // 🆕 문서 내용 로딩 시작
+    setLoadingContent(true)
+    setContentError('')
+    setDocumentContent('')
+    
+    try {
+      const response = await documentsApi.getContent(document.id)
+      if (response.data.success) {
+        setDocumentContent(response.data.data.content || '내용이 없습니다.')
+      } else {
+        setContentError(`문서 내용을 불러올 수 없습니다: ${response.data.message}`)
+      }
+    } catch (error: any) {
+      console.error('문서 내용 로딩 실패:', error)
+      setContentError('문서 내용을 불러오는 중 오류가 발생했습니다.')
+    } finally {
+      setLoadingContent(false)
+    }
   }
 
   const handleBulkDelete = async () => {
@@ -731,7 +757,13 @@ export default function DocumentsPage() {
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-xl font-bold text-gray-900">문서 상세정보</h2>
                   <Button
-                    onClick={() => setShowViewModal(false)}
+                    onClick={() => {
+                      setShowViewModal(false)
+                      // 🆕 상태 초기화
+                      setDocumentContent('')
+                      setContentError('')
+                      setLoadingContent(false)
+                    }}
                     variant="ghost"
                     size="sm"
                     className="h-8 w-8 p-0"
@@ -781,6 +813,42 @@ export default function DocumentsPage() {
                       </div>
                     </div>
                   )}
+                  
+                  {/* 🆕 문서 내용 표시 */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">문서 내용</label>
+                    <div className="bg-gray-50 rounded-lg border max-h-96 overflow-y-auto">
+                      {loadingContent ? (
+                        <div className="flex items-center justify-center p-8">
+                          <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
+                          <span className="ml-2 text-gray-600">문서 내용을 불러오는 중...</span>
+                        </div>
+                      ) : contentError ? (
+                        <div className="p-4">
+                          <div className="flex items-center text-red-600 mb-2">
+                            <AlertCircle className="h-4 w-4 mr-2" />
+                            <span className="font-medium">오류</span>
+                          </div>
+                          <p className="text-red-700 text-sm">{contentError}</p>
+                        </div>
+                      ) : documentContent ? (
+                        <div className="p-4">
+                          <pre className="whitespace-pre-wrap text-sm text-gray-800 leading-relaxed font-mono">
+                            {documentContent}
+                          </pre>
+                        </div>
+                      ) : (
+                        <div className="p-4 text-gray-500 text-center">
+                          문서 내용이 없습니다.
+                        </div>
+                      )}
+                    </div>
+                    {documentContent && (
+                      <div className="text-xs text-gray-500 text-right">
+                        총 {documentContent.length.toLocaleString()}자
+                      </div>
+                    )}
+                  </div>
                 </div>
                 
                 <div className="mt-8 flex justify-end gap-3">
@@ -792,7 +860,13 @@ export default function DocumentsPage() {
                     <Trash2 className="h-4 w-4 mr-2" />
                     삭제
                   </Button>
-                  <Button onClick={() => setShowViewModal(false)}>
+                  <Button onClick={() => {
+                    setShowViewModal(false)
+                    // 🆕 상태 초기화
+                    setDocumentContent('')
+                    setContentError('')
+                    setLoadingContent(false)
+                  }}>
                     닫기
                   </Button>
                 </div>

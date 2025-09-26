@@ -8,7 +8,7 @@ import os
 import json
 from typing import List, Dict, Any, Optional
 from datetime import datetime
-from fastapi import APIRouter, HTTPException, Depends, status, UploadFile, File, Form, Request
+from fastapi import APIRouter, HTTPException, Depends, status, UploadFile, File, Form, Request, Query
 from fastapi.responses import FileResponse
 import aiofiles
 
@@ -1011,6 +1011,87 @@ async def search_documents(
 
 
 @router.get(
+    "/search-raw", 
+    response_model=APIResponse,
+    summary="문서 원본 검색 (MCP용)",
+    description="벡터 검색만 수행하고 LLM 처리 없이 원본 문서들을 반환합니다. Cursor/Claude가 직접 처리할 수 있습니다."
+)
+async def search_documents_raw(
+    query: str = Query(..., description="검색 질의"),
+    max_results: int = Query(5, description="최대 결과 수", le=20),
+    similarity_threshold: float = Query(0.3, description="유사도 임계값 (0.0-1.0)", ge=0.0, le=1.0),
+    site_ids: str = Query(None, description="사이트 ID 목록 (쉼표로 구분)"),
+    service: object = Depends(get_vector_store_service)
+) -> APIResponse:
+    """
+    MCP 전용 원본 문서 검색
+    
+    - Cursor/Claude가 직접 RAG 처리할 수 있도록 원본 문서만 반환
+    - LLM 처리 없이 벡터 검색 결과만 제공
+    - 빠른 응답 시간과 효율적인 처리
+    """
+    try:
+        # site_ids 파싱
+        site_id_list = None
+        if site_ids:
+            site_id_list = [s.strip() for s in site_ids.split(",") if s.strip()]
+
+        logger.info(f"원본 문서 검색 요청: query='{query}', max_results={max_results}, threshold={similarity_threshold}")
+        
+        # 벡터 검색만 수행 (LLM 처리 없음)
+        search_results = await service.search_similar(
+            query=query,
+            max_results=max_results,
+            site_ids=site_id_list,
+            similarity_threshold=similarity_threshold
+        )
+        
+        if not search_results:
+            return APIResponse(
+                success=True,
+                message=f"'{query}'와 관련된 문서를 찾을 수 없습니다",
+                data=[]
+            )
+        
+        # MCP가 처리할 수 있는 형태로 데이터 구성
+        formatted_results = []
+        for result in search_results:
+            formatted_result = {
+                "content": result["content"],
+                "similarity": result["similarity"],
+                "rank": result["rank"]
+            }
+            
+            # 메타데이터 추가 (필요한 것만)
+            if "metadata" in result and result["metadata"]:
+                metadata = result["metadata"]
+                formatted_result["metadata"] = {
+                    "title": metadata.get("title"),
+                    "site_id": metadata.get("site_id"), 
+                    "doc_type": metadata.get("doc_type"),
+                    "tags": metadata.get("tags"),
+                    "template_type": metadata.get("template_type")
+                }
+            
+            formatted_results.append(formatted_result)
+        
+        logger.info(f"원본 문서 검색 완료: {len(formatted_results)}개 결과 반환")
+        
+        return APIResponse(
+            success=True,
+            message=f"'{query}' 검색 완료: {len(formatted_results)}개 문서 발견",
+            data=formatted_results
+        )
+        
+    except Exception as e:
+        logger.error(f"원본 문서 검색 실패: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="원본 문서 검색 중 오류가 발생했습니다"
+        )
+
+
+@router.get(
     "/",
     response_model=APIResponse,
     summary="문서 목록 조회",
@@ -1337,6 +1418,106 @@ async def get_documents(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"문서 목록 조회 실패: {str(e)}"
+        )
+
+
+@router.get(
+    "/{document_id}/content",
+    response_model=APIResponse,
+    summary="문서 내용 조회",
+    description="특정 문서의 전체 내용을 조회합니다. 청크로 나누어 저장된 문서를 재결합하여 반환합니다."
+)
+async def get_document_content(
+    document_id: str,
+    service: object = Depends(get_vector_store_service)
+) -> APIResponse:
+    """
+    문서 내용 조회
+    
+    - **document_id**: 조회할 문서 ID
+    
+    벡터 데이터베이스에서 해당 문서의 모든 청크를 조회하여 원본 문서 내용을 재구성합니다.
+    """
+    try:
+        logger.info(f"문서 내용 조회 요청: {document_id}")
+        
+        # ChromaDB에서 해당 문서의 모든 청크 조회
+        collection = service._collection
+        if collection is None:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="벡터 데이터베이스에 연결할 수 없습니다"
+            )
+        
+        # 문서 ID로 필터링하여 모든 청크 조회
+        results = collection.get(
+            where={"logical_key": document_id},
+            include=["documents", "metadatas", "ids"]
+        )
+        
+        if not results["documents"] or len(results["documents"]) == 0:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"문서를 찾을 수 없습니다: {document_id}"
+            )
+        
+        # 청크들을 순서대로 정렬 (chunk_index 기준)
+        chunks_data = []
+        for i, (doc_content, metadata, chunk_id) in enumerate(zip(
+            results["documents"], 
+            results["metadatas"], 
+            results["ids"]
+        )):
+            chunk_index = metadata.get("chunk_index", i)
+            chunks_data.append({
+                "chunk_index": chunk_index,
+                "content": doc_content,
+                "metadata": metadata,
+                "chunk_id": chunk_id
+            })
+        
+        # chunk_index로 정렬
+        chunks_data.sort(key=lambda x: x["chunk_index"])
+        
+        # 문서 내용 재결합
+        full_content = ""
+        document_metadata = {}
+        
+        for chunk in chunks_data:
+            full_content += chunk["content"]
+            if not document_metadata:  # 첫 번째 청크의 메타데이터 사용
+                document_metadata = chunk["metadata"].copy()
+        
+        # 문서 기본 정보
+        document_info = {
+            "document_id": document_id,
+            "title": document_metadata.get("title", document_metadata.get("original_filename", "제목 없음")),
+            "content": full_content,
+            "total_chunks": len(chunks_data),
+            "content_length": len(full_content),
+            "doc_type": document_metadata.get("doc_type", "unknown"),
+            "site_id": document_metadata.get("site_id"),
+            "created_at": document_metadata.get("created_at"),
+            "file_path": document_metadata.get("file_path"),
+            "original_filename": document_metadata.get("original_filename"),
+            "metadata": document_metadata
+        }
+        
+        logger.info(f"문서 내용 조회 완료: {document_id}, {len(chunks_data)}개 청크, {len(full_content)}자")
+        
+        return APIResponse(
+            success=True,
+            message=f"문서 내용 조회 성공: {document_info['title']}",
+            data=document_info
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"문서 내용 조회 실패: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"문서 내용 조회 실패: {str(e)}"
         )
 
 

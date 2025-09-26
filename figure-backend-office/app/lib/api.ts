@@ -19,9 +19,15 @@ export const api = axios.create({
   },
 });
 
-// 요청 인터셉터 - 인증 토큰 자동 추가 (로그 제거)
+// 요청 인터셉터 - 인증 토큰 자동 추가 및 FormData 처리 (로그 제거)
 api.interceptors.request.use(
   (config) => {
+    // 🆕 FormData인 경우 Content-Type 헤더 제거 (브라우저가 자동으로 boundary 설정)
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+      console.log('[API Debug] FormData detected, removing Content-Type header');
+    }
+
     // 인증 토큰 추가 (로그인/리프레시 요청 제외)
     const token = AuthStorage.getAccessToken();
     if (
@@ -146,6 +152,8 @@ export const documentsApi = {
   }) => api.get("/api/documents/search", { params }),
   getStats: () => api.get("/api/documents/stats"),
   delete: (documentId: string) => api.delete(`/api/documents/${documentId}`),
+  // 🆕 문서 내용 조회
+  getContent: (documentId: string) => api.get(`/api/documents/${documentId}/content`),
 };
 
 export const sitesApi = {
@@ -222,3 +230,35 @@ export async function checkRAGHealth() {
   const response = await api.post("/api/rag/health");
   return response.data;
 }
+
+// 🆕 Guidelines API
+export const guidelinesApi = {
+  // 지침 목록 조회
+  list: (params?: {
+    guideline_type?: string;
+    scope?: string;
+    site_id?: string;
+    is_active?: boolean;
+    search_query?: string;
+    limit?: number;
+    offset?: number;
+  }) => api.get('/api/guidelines/', { params }),
+
+  // 지침 상세 조회
+  get: (id: string) => api.get(`/api/guidelines/${id}`),
+
+  // 지침 생성
+  create: (data: any) => api.post('/api/guidelines/', data),
+
+  // 지침 수정
+  update: (id: string, data: any) => api.put(`/api/guidelines/${id}`, data),
+
+  // 지침 삭제
+  delete: (id: string) => api.delete(`/api/guidelines/${id}`),
+
+  // 지침 종합 조회 (MCP용)
+  aggregate: (guideline_type: string, site_id?: string) => 
+    api.get(`/api/guidelines/aggregate/${guideline_type}`, { 
+      params: site_id ? { site_id } : {} 
+    }),
+};

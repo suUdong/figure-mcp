@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useSites } from "@/hooks/use-sites";
+import { AuthStorage } from "@/lib/auth-storage";
 import {
   Upload,
   X,
@@ -315,41 +316,39 @@ export default function SimplifiedAdvancedUpload({
           console.log(`${key}:`, value);
         }
 
-        const response = await api.post(
-          "/api/documents/upload-file",
-          formData,
-          {
-            // Content-Type 헤더 제거 - axios가 자동으로 boundary와 함께 설정
-            headers: {},
-            signal: fileItem.abortController?.signal,
-            onUploadProgress: (progressEvent) => {
-              if (progressEvent.total) {
-                const progress = Math.round(
-                  (progressEvent.loaded * 100) / progressEvent.total
-                );
+        // 🔧 절대 URL로 직접 백엔드 호출 (프록시 우회)
+        const response = await fetch("http://localhost:8001/api/documents/upload-file", {
+          method: "POST",
+          body: formData,
+          // Content-Type 헤더 생략 - 브라우저가 자동으로 multipart/form-data boundary 설정
+          headers: {
+            // 인증 토큰만 수동으로 추가
+            'Authorization': `Bearer ${AuthStorage.getAccessToken() || ''}`
+          },
+          signal: fileItem.abortController?.signal,
+        });
 
-                const updatedFile = {
-                  ...fileItem,
-                  progress,
-                  message: `업로드 중... ${progress}%`,
-                };
+        const responseData = await response.json();
+        console.log("[Upload Debug] Response:", responseData);
 
-                setFiles((prev) =>
-                  prev.map((f) => (f.id === fileItem.id ? updatedFile : f))
-                );
-              }
-            },
-          }
+        // 업로드 진행률 업데이트 (fetch는 onUploadProgress가 없으므로 즉시 100%로 설정)
+        const updatedFile = {
+          ...fileItem,
+          progress: 100,
+          message: response.ok ? "업로드 완료" : "업로드 실패",
+        };
+        setFiles((prev) =>
+          prev.map((f) => (f.id === fileItem.id ? updatedFile : f))
         );
 
-        if (response.data.success) {
+        if (response.ok && responseData.success) {
           const completedItem = {
             ...fileItem,
             status: "success" as const,
             message: "업로드 완료",
             progress: 100,
             endTime: new Date(),
-            result: response.data.data,
+            result: responseData.data,
           };
 
           setFiles((prev) =>
@@ -357,7 +356,7 @@ export default function SimplifiedAdvancedUpload({
           );
           onUploadComplete?.(completedItem);
         } else {
-          throw new Error(response.data.message || "업로드 실패");
+          throw new Error(responseData.message || `업로드 실패 (${response.status})`);
         }
       } catch (error: any) {
         if (error.name === "AbortError") {
