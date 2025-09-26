@@ -9,6 +9,7 @@ from typing import Dict, Any
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.exception_handlers import http_exception_handler
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -18,7 +19,7 @@ import uvicorn
 
 from app.config import settings
 from app.domain.entities.schemas import APIResponse
-from app.interfaces.api import rag, documents, sites, admin, usage, auth, template, analysis, template_matching
+from app.interfaces.api import rag, documents, sites, admin, usage, auth, template, analysis, template_matching, guidelines
 from app.application.services.vector_store import vector_store_service
 from app.application.services.rag_service import rag_service
 from app.application.services.auth_service import auth_service
@@ -94,6 +95,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# 🆕 HTTP 압축 미들웨어 설정 (500B 이상 응답 자동 압축)
+app.add_middleware(
+    GZipMiddleware, 
+    minimum_size=500,  # 500바이트 이상 응답만 압축
+    compresslevel=6    # 압축 레벨 (1~9, 6이 성능/크기 균형점)
+)
+
 # API 로깅 미들웨어 설정
 app.add_middleware(
     APILoggingMiddleware,
@@ -167,6 +175,7 @@ app.include_router(rag.router, prefix="/api")
 app.include_router(documents.router, prefix="/api")
 app.include_router(sites.router, prefix="/api")
 app.include_router(template.router)
+app.include_router(guidelines.router)  # 🆕 지침 관리 API
 app.include_router(admin.router)
 app.include_router(usage.router, prefix="/api")
 app.include_router(analysis.router, prefix="/api")

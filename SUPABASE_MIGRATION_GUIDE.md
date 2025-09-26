@@ -458,3 +458,4 @@ CREATE INDEX idx_jsonb_gin ON table_name USING GIN(jsonb_column);
 **마이그레이션 완료!** 🎉
 
 이제 Figure Backend가 Supabase PostgreSQL 기반으로 성공적으로 마이그레이션되었습니다. 확장성과 성능이 크게 향상될 것입니다.
+

@@ -60,10 +60,10 @@
     }
   },
   "chroma": {
-    "provider": "render",
-    "url": "${CHROMA_URL}",
+    "provider": "local",
+    "url": "http://localhost:8000",
     "collection_name": "figure_documents_dev",
-    "ssl": true,
+    "ssl": false,
     "timeout": 30,
     "retry_attempts": 3
   },

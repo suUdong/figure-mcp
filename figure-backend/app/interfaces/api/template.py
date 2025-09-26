@@ -17,8 +17,12 @@ from app.domain.entities.template_entities import (
     TemplateSearchRequest,
     TemplateResponse
 )
+from app.domain.entities.guideline_entities import GuidelineType
+from app.infrastructure.persistence.models import GuidelineModel
 from app.domain.entities.schemas import APIResponse
 from app.application.services.template_service import get_template_service, TemplateService
+from app.infrastructure.persistence.connection import get_db
+from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 
@@ -293,36 +297,22 @@ async def get_template_guide_for_mcp(
     mcp_request_type: MCPRequestType,
     site_id: Optional[str] = None,
     context: Optional[str] = None,
-    service: TemplateService = Depends(get_template_service)
+    service: TemplateService = Depends(get_template_service),
+    db: Session = Depends(get_db)
 ) -> APIResponse[dict]:
     """MCP용 템플릿 가이드 조회"""
     try:
-        # MCPRequestType을 TemplateType으로 매핑
+        # MCPRequestType을 TemplateType으로 매핑 - 핵심 9가지로 간소화
         mcp_to_template_mapping = {
-            MCPRequestType.REQUIREMENTS_DOC: TemplateType.REQUIREMENTS,
-            MCPRequestType.BUSINESS_REQUIREMENTS: TemplateType.BUSINESS_REQUIREMENTS,
-            MCPRequestType.FUNCTIONAL_SPECIFICATION: TemplateType.FUNCTIONAL_SPECIFICATION,
-            MCPRequestType.TECHNICAL_SPEC: TemplateType.TECHNICAL_SPECIFICATION,
-            MCPRequestType.SYSTEM_ARCHITECTURE: TemplateType.SYSTEM_ARCHITECTURE,
-            MCPRequestType.DATABASE_DESIGN: TemplateType.DATABASE_DESIGN,
-            MCPRequestType.TABLE_SPECIFICATION: TemplateType.TABLE_SPECIFICATION,
-            MCPRequestType.API_SPECIFICATION: TemplateType.API_SPECIFICATION,
-            MCPRequestType.UI_UX_DESIGN: TemplateType.UI_UX_DESIGN,
+            MCPRequestType.BUSINESS_FLOW: TemplateType.BUSINESS_FLOW,
+            MCPRequestType.SEQUENCE_DIAGRAM: TemplateType.SEQUENCE_DIAGRAM,
+            MCPRequestType.REQUIREMENTS: TemplateType.REQUIREMENTS,
+            MCPRequestType.PROGRAM_DESIGN_ONLINE: TemplateType.PROGRAM_DESIGN_ONLINE,
+            MCPRequestType.PROGRAM_DESIGN_BATCH: TemplateType.PROGRAM_DESIGN_BATCH,
+            MCPRequestType.PROGRAM_DESIGN_COMMON: TemplateType.PROGRAM_DESIGN_COMMON,
             MCPRequestType.IMPACT_ANALYSIS: TemplateType.IMPACT_ANALYSIS,
-            MCPRequestType.API_DOCUMENTATION: TemplateType.API_DOCUMENTATION,
-            MCPRequestType.CODE_REVIEW_CHECKLIST: TemplateType.CODE_REVIEW_CHECKLIST,
-            MCPRequestType.TEST_PLAN: TemplateType.TEST_PLAN,
-            MCPRequestType.TEST_SCENARIO: TemplateType.TEST_SCENARIO,
-            MCPRequestType.TEST_CASE: TemplateType.TEST_CASE,
-            MCPRequestType.QA_CHECKLIST: TemplateType.QA_CHECKLIST,
-            MCPRequestType.DEPLOYMENT_GUIDE: TemplateType.DEPLOYMENT_GUIDE,
-            MCPRequestType.DEPLOYMENT_CHECKLIST: TemplateType.DEPLOYMENT_CHECKLIST,
-            MCPRequestType.ROLLBACK_PLAN: TemplateType.ROLLBACK_PLAN,
-            MCPRequestType.MONITORING_PLAN: TemplateType.MONITORING_PLAN,
-            MCPRequestType.USER_MANUAL: TemplateType.USER_MANUAL,
-            MCPRequestType.RELEASE_NOTES: TemplateType.RELEASE_NOTES,
-            MCPRequestType.OPERATION_MANUAL: TemplateType.OPERATION_MANUAL,
-            MCPRequestType.TROUBLESHOOTING_GUIDE: TemplateType.TROUBLESHOOTING_GUIDE
+            MCPRequestType.TABLE_SPECIFICATION: TemplateType.TABLE_SPECIFICATION,
+            MCPRequestType.INTERFACE_SPECIFICATION: TemplateType.INTERFACE_SPECIFICATION
         }
         
         template_type = mcp_to_template_mapping.get(mcp_request_type)
@@ -356,12 +346,18 @@ async def get_template_guide_for_mcp(
             site_id=site_id
         )
         
-        # MCP에서 기대하는 형식으로 응답 구성
+        # 🆕 지침 조회 및 통합 처리
+        guidelines_info = await get_guidelines_for_mcp(db, mcp_request_type, site_id)
+        
+        # MCP에서 기대하는 형식으로 응답 구성 (지침 포함)
         guide_response = {
             "template": template_obj.content,
             "variables": template_obj.variables,
             "instructions": context_info["instructions"],
-            "usage_count": template_obj.usage_count
+            "usage_count": template_obj.usage_count,
+            # 🆕 지침 정보 추가
+            "guidelines": guidelines_info,
+            "has_guidelines": len(guidelines_info.get("guidelines", [])) > 0
         }
         
         return APIResponse(
@@ -530,3 +526,100 @@ async def get_template_stats(
         message="템플릿 사용 통계 조회 완료",
         data=stats
     )
+
+
+async def get_guidelines_for_mcp(
+    db: Session, 
+    mcp_request_type: MCPRequestType, 
+    site_id: Optional[str] = None
+) -> dict:
+    """MCP용 지침 조회 및 통합 처리"""
+    try:
+        # MCPRequestType을 GuidelineType으로 매핑
+        mcp_to_guideline_mapping = {
+            MCPRequestType.BUSINESS_FLOW: GuidelineType.BUSINESS_FLOW,
+            MCPRequestType.SEQUENCE_DIAGRAM: GuidelineType.SEQUENCE_DIAGRAM,
+            MCPRequestType.REQUIREMENTS: GuidelineType.REQUIREMENTS,
+            MCPRequestType.PROGRAM_DESIGN_ONLINE: GuidelineType.PROGRAM_DESIGN_ONLINE,
+            MCPRequestType.PROGRAM_DESIGN_BATCH: GuidelineType.PROGRAM_DESIGN_BATCH,
+            MCPRequestType.PROGRAM_DESIGN_COMMON: GuidelineType.PROGRAM_DESIGN_COMMON,
+            MCPRequestType.IMPACT_ANALYSIS: GuidelineType.IMPACT_ANALYSIS,
+            MCPRequestType.TABLE_SPECIFICATION: GuidelineType.TABLE_SPECIFICATION,
+            MCPRequestType.INTERFACE_SPECIFICATION: GuidelineType.INTERFACE_SPECIFICATION
+        }
+        
+        guideline_type = mcp_to_guideline_mapping.get(mcp_request_type)
+        if not guideline_type:
+            logger.warning(f"지침 타입 매핑 실패: {mcp_request_type}")
+            return {"guidelines": [], "combined_instructions": {}}
+        
+        # 적용 가능한 지침 조회 (전역 + 사이트별)
+        query = db.query(GuidelineModel).filter(
+            GuidelineModel.guideline_type == guideline_type.value,
+            GuidelineModel.is_active == True
+        )
+        
+        if site_id:
+            # 사이트별 지침 + 전역 지침
+            query = query.filter(
+                (GuidelineModel.site_id == site_id) | 
+                (GuidelineModel.scope == "GLOBAL")
+            )
+        else:
+            # 전역 지침만
+            query = query.filter(GuidelineModel.scope == "GLOBAL")
+        
+        # 우선순위 순으로 정렬
+        guidelines = query.order_by(GuidelineModel.priority.desc()).all()
+        
+        if not guidelines:
+            return {"guidelines": [], "combined_instructions": {}}
+        
+        # 지침 통합 처리
+        combined_role = []
+        combined_objective = []
+        guideline_list = []
+        total_priority = 0
+        
+        for guideline in guidelines:
+            guideline_info = {
+                "id": guideline.id,
+                "title": guideline.title,
+                "type": guideline.guideline_type,
+                "scope": guideline.scope,
+                "priority": guideline.priority,
+                "role_instruction": guideline.role_instruction,
+                "objective_instruction": guideline.objective_instruction,
+                "additional_context": guideline.additional_context,
+                "constraints": guideline.constraints,
+                "examples": guideline.examples,
+                "updated_at": guideline.updated_at.isoformat() if guideline.updated_at else None
+            }
+            guideline_list.append(guideline_info)
+            
+            if guideline.role_instruction:
+                combined_role.append(f"## {guideline.title}\n{guideline.role_instruction}")
+            
+            if guideline.objective_instruction:
+                combined_objective.append(f"## {guideline.title}\n{guideline.objective_instruction}")
+                
+            total_priority += guideline.priority
+        
+        # 통합 지침 생성
+        combined_instructions = {
+            "role": "\n\n".join(combined_role) if combined_role else "",
+            "objective": "\n\n".join(combined_objective) if combined_objective else "",
+            "total_priority": total_priority,
+            "count": len(guidelines)
+        }
+        
+        logger.info(f"지침 조회 완료: {mcp_request_type}, site_id: {site_id}, count: {len(guidelines)}")
+        
+        return {
+            "guidelines": guideline_list,
+            "combined_instructions": combined_instructions
+        }
+        
+    except Exception as e:
+        logger.error(f"MCP 지침 조회 오류: {e}")
+        return {"guidelines": [], "combined_instructions": {}}

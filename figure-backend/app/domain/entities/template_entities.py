@@ -9,44 +9,19 @@ from pydantic import BaseModel, Field
 
 
 class TemplateType(str, Enum):
-    """템플릿 유형"""
-    # 1단계: 요구사항 분석
-    REQUIREMENTS = "REQUIREMENTS"                        # 요구사항 정의서
-    BUSINESS_REQUIREMENTS = "BUSINESS_REQUIREMENTS"      # 비즈니스 요구사항서
-    FUNCTIONAL_SPECIFICATION = "FUNCTIONAL_SPECIFICATION" # 기능 명세서
+    """템플릿 유형 - 핵심 개발 문서로 간소화"""
+    # 🎯 핵심 개발 문서 (9가지)
+    BUSINESS_FLOW = "BUSINESS_FLOW"                     # 목표업무흐름도
+    SEQUENCE_DIAGRAM = "SEQUENCE_DIAGRAM"               # 시퀀스다이어그램
+    REQUIREMENTS = "REQUIREMENTS"                       # 요구사항정의서
+    PROGRAM_DESIGN_ONLINE = "PROGRAM_DESIGN_ONLINE"     # 프로그램설계서(온라인)
+    PROGRAM_DESIGN_BATCH = "PROGRAM_DESIGN_BATCH"       # 프로그램설계서(배치)
+    PROGRAM_DESIGN_COMMON = "PROGRAM_DESIGN_COMMON"     # 프로그램설계서(공통)
+    IMPACT_ANALYSIS = "IMPACT_ANALYSIS"                 # 영향도분석서
+    TABLE_SPECIFICATION = "TABLE_SPECIFICATION"        # 테이블정의서
+    INTERFACE_SPECIFICATION = "INTERFACE_SPECIFICATION" # 인터페이스정의서
     
-    # 2단계: 설계
-    TECHNICAL_SPECIFICATION = "TECHNICAL_SPECIFICATION"  # 기술 명세서
-    SYSTEM_ARCHITECTURE = "SYSTEM_ARCHITECTURE"          # 시스템 아키텍처 설계서
-    DATABASE_DESIGN = "DATABASE_DESIGN"                  # 데이터베이스 설계서
-    TABLE_SPECIFICATION = "TABLE_SPECIFICATION"          # 테이블 명세서
-    API_SPECIFICATION = "API_SPECIFICATION"              # API 명세서
-    UI_UX_DESIGN = "UI_UX_DESIGN"                        # UI/UX 설계서
-    
-    # 3단계: 개발
-    IMPACT_ANALYSIS = "IMPACT_ANALYSIS"                  # 영향도 분석서
-    API_DOCUMENTATION = "API_DOCUMENTATION"              # API 문서
-    CODE_REVIEW_CHECKLIST = "CODE_REVIEW_CHECKLIST"      # 코드 리뷰 체크리스트
-    
-    # 4단계: 테스트
-    TEST_PLAN = "TEST_PLAN"                              # 테스트 계획서
-    TEST_SCENARIO = "TEST_SCENARIO"                      # 테스트 시나리오
-    TEST_CASE = "TEST_CASE"                              # 테스트 케이스
-    QA_CHECKLIST = "QA_CHECKLIST"                        # QA 체크리스트
-    
-    # 5단계: 배포
-    DEPLOYMENT_GUIDE = "DEPLOYMENT_GUIDE"                # 배포 가이드
-    DEPLOYMENT_CHECKLIST = "DEPLOYMENT_CHECKLIST"        # 배포 체크리스트
-    ROLLBACK_PLAN = "ROLLBACK_PLAN"                      # 롤백 계획서
-    MONITORING_PLAN = "MONITORING_PLAN"                  # 모니터링 계획서
-    
-    # 6단계: 운영
-    USER_MANUAL = "USER_MANUAL"                          # 사용자 매뉴얼
-    RELEASE_NOTES = "RELEASE_NOTES"                      # 릴리즈 노트
-    OPERATION_MANUAL = "OPERATION_MANUAL"                # 운영 매뉴얼
-    TROUBLESHOOTING_GUIDE = "TROUBLESHOOTING_GUIDE"      # 트러블슈팅 가이드
-    
-    CUSTOM = "CUSTOM"                                    # 사용자 정의
+    CUSTOM = "CUSTOM"                                   # 사용자 정의
 
 
 class TemplateFormat(str, Enum):
@@ -176,42 +151,17 @@ class TemplateResponse(BaseModel):
 
 
 class MCPRequestType(str, Enum):
-    """MCP 요청 타입"""
-    # 1단계: 요구사항 분석
-    REQUIREMENTS_DOC = "requirements_doc"
-    BUSINESS_REQUIREMENTS = "business_requirements"
-    FUNCTIONAL_SPECIFICATION = "functional_specification"
-    
-    # 2단계: 설계
-    TECHNICAL_SPEC = "technical_spec"
-    SYSTEM_ARCHITECTURE = "system_architecture"
-    DATABASE_DESIGN = "database_design"
-    TABLE_SPECIFICATION = "table_specification"
-    API_SPECIFICATION = "api_specification"
-    UI_UX_DESIGN = "ui_ux_design"
-    
-    # 3단계: 개발
-    IMPACT_ANALYSIS = "impact_analysis"
-    API_DOCUMENTATION = "api_documentation"
-    CODE_REVIEW_CHECKLIST = "code_review_checklist"
-    
-    # 4단계: 테스트
-    TEST_PLAN = "test_plan"
-    TEST_SCENARIO = "test_scenario"
-    TEST_CASE = "test_case"
-    QA_CHECKLIST = "qa_checklist"
-    
-    # 5단계: 배포
-    DEPLOYMENT_GUIDE = "deployment_guide"
-    DEPLOYMENT_CHECKLIST = "deployment_checklist"
-    ROLLBACK_PLAN = "rollback_plan"
-    MONITORING_PLAN = "monitoring_plan"
-    
-    # 6단계: 운영
-    USER_MANUAL = "user_manual"
-    RELEASE_NOTES = "release_notes"
-    OPERATION_MANUAL = "operation_manual"
-    TROUBLESHOOTING_GUIDE = "troubleshooting_guide"
+    """MCP 요청 타입 - 핵심 개발 문서만 선별"""
+    # 🎯 핵심 개발 문서 (7가지)
+    BUSINESS_FLOW = "business_flow"                     # 목표업무흐름도
+    SEQUENCE_DIAGRAM = "sequence_diagram"               # 시퀀스다이어그램
+    REQUIREMENTS = "requirements"                       # 요구사항정의서
+    PROGRAM_DESIGN_ONLINE = "program_design_online"     # 프로그램설계서(온라인)
+    PROGRAM_DESIGN_BATCH = "program_design_batch"       # 프로그램설계서(배치)
+    PROGRAM_DESIGN_COMMON = "program_design_common"     # 프로그램설계서(공통)
+    IMPACT_ANALYSIS = "impact_analysis"                 # 영향도분석서
+    TABLE_SPECIFICATION = "table_specification"        # 테이블정의서
+    INTERFACE_SPECIFICATION = "interface_specification" # 인터페이스정의서
 
 
 class TemplateMatchingRule(BaseModel):

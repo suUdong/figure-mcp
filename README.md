@@ -12,56 +12,125 @@ Figure-MCP는 MCP(Model Context Protocol) 서버로, 개발 표준 문서를 관
 - **🤖 자동 산출물 생성**: LLM 기반 코드 및 문서 자동 생성
 - **🔧 개발도구 연동**: Cursor, Copilot과의 원활한 연동
 
-## 📦 설치 및 실행
+## 🚀 원클릭 설치 (권장)
+
+Windows PowerShell에서:
+
+```powershell
+# 1. Just 설치 (최초 1회만)
+winget install casey/just
+
+# 2. 프로젝트 클론
+git clone https://github.com/your-repo/figure-mcp.git
+cd figure-mcp
+
+# 3. 원클릭 설치 및 설정
+just install
+
+# 4. 개발 환경 시작
+just local-start
+```
+
+**끝!** 🎉 이제 http://localhost:3001 에서 백오피스를 사용하세요.
+
+---
+
+## 🔧 수동 설치 (고급 사용자용)
 
 ### 사전 요구사항
+- **Docker Desktop** - 컨테이너 실행용 ([다운로드](https://docs.docker.com/desktop/install/windows-install/))
+- **Node.js 18+** - 프론트엔드 개발용 ([다운로드](https://nodejs.org/))
+- **Just** - 명령어 관리용 (`winget install casey/just`)
 
-- Node.js 18+
-- npm 9+
-
-### 빠른 시작
+### 수동 설치 과정
 
 1. **레포지토리 클론**
    ```bash
-   git clone https://github.com/your-org/figure-mcp.git
+   git clone https://github.com/your-repo/figure-mcp.git
    cd figure-mcp
    ```
 
-2. **MCP 서버 실행**
+2. **환경 설정**
    ```bash
-   # 의존성 설치 및 실행
-   npm run dev
+   # 개발 환경 설정 파일 복사
+   cp figure-backend/env.example figure-backend/.env
+   cp data/environments/development.json .env.json
+   ```
+
+3. **Docker 실행**
+   ```bash
+   # Docker로 전체 환경 실행
+   docker-compose up -d --build
    
-   # 또는 직접 실행
-   cd figure-mcp
-   npm install
-   npm run dev
+   # 또는 Just 명령어 사용 (권장)
+   just local-start
    ```
 
-3. **Docker 실행 (선택사항)**
-   ```bash
-   # Docker로 실행
-   npm run docker:build
-   npm run docker:up
-   ```
+### 서비스 확인
+- **🏢 백오피스 UI**: http://localhost:3001
+- **🔌 Backend API**: http://localhost:8001  
+- **🗄️ ChromaDB**: http://localhost:8000
+- **📚 API 문서**: http://localhost:8001/docs
 
-### 환경 설정
+### API 키 설정 (선택사항)
 
-`figure-mcp/.env` 파일에 다음 변수들을 설정하세요:
+`figure-backend/.env` 파일에 다음 API 키들을 설정하면 더 많은 기능을 사용할 수 있습니다:
 
 ```bash
-# 서버 설정
-NODE_ENV=development
-PORT=3000
-
-# LLM 설정 (선택사항)
-OPENAI_API_KEY=your_openai_key
+# LLM 설정 (선택사항 - 기본값 사용 가능)
+CLAUDE_API_KEY=your_claude_key
+GEMINI_API_KEY=your_gemini_key
 
 # Jira 연동 (선택사항)
 JIRA_BASE_URL=https://your-company.atlassian.net
-JIRA_USERNAME=your_username
+JIRA_EMAIL=your_email
 JIRA_API_TOKEN=your_api_token
 ```
+
+---
+
+## 🆘 문제 해결
+
+### 도구가 없다고 나올 때:
+```powershell
+# 시스템 상태 전체 점검
+just health-check
+
+# 사전 요구사항만 확인
+just check-requirements
+
+# 누락된 도구 자동 설치 시도
+just install-missing
+```
+
+### Docker 문제가 있을 때:
+```powershell
+# Docker Desktop 실행 여부 확인
+# 완전 재빌드
+just rebuild-clean
+
+# 개별 서비스 재빌드
+just rebuild-backend  # 백엔드만
+just rebuild-office   # 프론트엔드만
+```
+
+### 서비스가 안 뜰 때:
+```powershell
+# 전체 재시작
+just local-stop
+just local-start
+
+# 상태 확인
+just status
+docker-compose ps
+```
+
+### 포트 충돌 시:
+기본 포트들을 확인하고 다른 서비스와 충돌하지 않는지 확인하세요:
+- 3001: 백오피스 UI
+- 8001: Backend API
+- 8000: ChromaDB
+- 6379: Redis
 
 ## 📖 사용법
 

@@ -50,6 +50,7 @@ class Site(Base):
     
     # 관계 설정
     documents = relationship("Document", back_populates="site", cascade="all, delete-orphan")
+    guidelines = relationship("GuidelineModel", back_populates="site", cascade="all, delete-orphan")
 
 
 class Document(Base):
@@ -138,4 +139,49 @@ class TemplateMatchingRuleModel(Base):
     # 메타데이터
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
-    created_by = Column(String(100), nullable=True) 
+    created_by = Column(String(100), nullable=True)
+
+
+class GuidelineModel(Base):
+    """LLM 지침 모델"""
+    __tablename__ = "guidelines"
+    
+    id = Column(String, primary_key=True, index=True)  # UUID
+    title = Column(String(255), nullable=False, index=True)
+    description = Column(Text, nullable=True)
+    
+    # 지침 메타데이터
+    guideline_type = Column(String(50), nullable=False, index=True)  # BUSINESS_FLOW, REQUIREMENTS 등
+    scope = Column(String(20), default="GLOBAL", nullable=False, index=True)  # GLOBAL, SITE_SPECIFIC
+    site_id = Column(String, ForeignKey("sites.id"), nullable=True, index=True)  # 사이트별 지침
+    
+    # 지침 내용
+    role_instruction = Column(Text, nullable=False)      # LLM 역할 지침
+    objective_instruction = Column(Text, nullable=False)  # LLM 목표 지침
+    additional_context = Column(Text, nullable=True)     # 추가 컨텍스트
+    
+    # 우선순위 및 제약사항
+    priority = Column(Integer, default=0, nullable=False, index=True)  # 우선순위
+    constraints = Column(Text, nullable=True)            # 제약사항
+    
+    # 예시 및 참고사항
+    examples = Column(Text, nullable=True)               # 작성 예시
+    references = Column(Text, nullable=True)             # 참고 자료
+    
+    # 메타데이터
+    tags = Column(JSON, nullable=True)                   # 태그 배열
+    extra_metadata = Column(JSON, nullable=True)         # 추가 메타데이터
+    
+    # 상태
+    is_active = Column(Boolean, default=True, nullable=False, index=True)
+    version = Column(String(20), default="1.0.0", nullable=False)
+    
+    # 감사 필드
+    created_by = Column(String(100), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_by = Column(String(100), nullable=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    
+    # 관계 설정
+    site = relationship("Site", back_populates="guidelines")
+ 
