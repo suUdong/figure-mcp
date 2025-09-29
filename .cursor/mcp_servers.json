@@ -2,12 +2,11 @@
   "mcpServers": {
     "figure-mcp": {
       "command": "node",
-      "args": ["figure-mcp\\dist\\figure-mcp-server.js"],
+      "args": ["C:\\workspace\\ds\\01_source\\figure-mcp\\figure-mcp\\figure-mcp\\dist\\figure-mcp-server.js"],
       "env": {
         "BACKEND_API_URL": "http://localhost:8001/api",
         "MCP_QUIET": "true"
-      },
-      "cwd": "C:\\workspace\\work\\figure-mcp\\figure-mcp"
+      }
     }
   }
 }
