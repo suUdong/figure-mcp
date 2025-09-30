@@ -22,6 +22,8 @@ import { useSites } from "@/hooks/use-sites";
 import { queryRAG } from "@/lib/api";
 import { Site } from "@/types/api";
 import MainLayout from "@/components/layout/main-layout";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 // 새로운 API 스키마에 맞춘 인터페이스
 interface SourceInfo {
@@ -330,8 +332,10 @@ export default function RAGTestPage() {
                           </h3>
                         </div>
                         <div className="p-6">
-                          <div className="prose max-w-none text-gray-800 leading-relaxed">
-                            {response.data.answer}
+                          <div className="prose prose-slate max-w-none text-gray-800 leading-relaxed prose-headings:text-gray-900 prose-p:text-gray-700 prose-strong:text-gray-900 prose-ul:text-gray-700 prose-ol:text-gray-700 prose-li:marker:text-figure-600">
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                              {response.data.answer}
+                            </ReactMarkdown>
                           </div>
                         </div>
                       </Card>

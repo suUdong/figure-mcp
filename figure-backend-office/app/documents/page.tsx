@@ -10,10 +10,10 @@ import {
   Search, 
   FileText, 
   Calendar, 
-  Download, 
-  Trash2, 
+  Download,
+  Trash2,
   Eye, 
-  Filter, 
+  Filter,
   RefreshCw,
   SlidersHorizontal,
   ArrowUpDown,
@@ -909,4 +909,4 @@ export default function DocumentsPage() {
       </div>
     </MainLayout>
   )
-} 
+}

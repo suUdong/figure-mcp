@@ -105,50 +105,50 @@ class FigureMCPServerV2 {
       tools: [
         {
           name: 'create_document',
-          description: '🚀 혁신적 원샷 생성: 풍부한 컨텍스트 + 단일 AI 요청으로 완전한 개발 산출물을 한 번에 생성합니다.',
+          description: '개발 산출물 생성 (예: 영향도분석서, 요구사항명세서 등)',
           inputSchema: {
             type: 'object',
             properties: {
               documentType: {
                 type: 'string',
                 enum: [
-                  'IMPACT_ANALYSIS',
-                  'REQUIREMENTS', 
-                  'TABLE_SPECIFICATION',
-                  'PROGRAM_DESIGN_ONLINE',
-                  'PROGRAM_DESIGN_BATCH',
-                  'PROGRAM_DESIGN_COMMON',
-                  'INTERFACE_SPECIFICATION'
+                  'IMPACT_ANALYSIS',      // 영향도분석서
+                  'REQUIREMENTS',          // 요구사항명세서
+                  'TABLE_SPECIFICATION',   // 테이블정의서
+                  'PROGRAM_DESIGN_ONLINE', // 프로그램설계서(온라인)
+                  'PROGRAM_DESIGN_BATCH',  // 프로그램설계서(배치)
+                  'PROGRAM_DESIGN_COMMON', // 프로그램설계서(공통)
+                  'INTERFACE_SPECIFICATION' // 인터페이스정의서
                 ],
-                description: '생성할 문서 타입'
+                description: '문서타입 (영향도분석서=IMPACT_ANALYSIS, 요구사항=REQUIREMENTS)'
               },
               featureName: {
                 type: 'string',
-                description: '기능명/분석 대상 (예: "OAuth 인증", "사용자 관리")'
+                description: '기능명 (예: "로그인", "파일업로드")'
               },
               requirements: {
                 type: 'string',
-                description: '상세 요구사항 또는 배경 설명 (풍부할수록 더 좋은 결과)'
+                description: '요구사항 상세 설명 (선택)'
               },
               siteName: {
                 type: 'string',
-                description: '사이트명 (선택사항)',
+                description: '사이트명 (선택, 기본값: KT알파)',
                 default: this.DEFAULT_SITE_NAME
               },
               qualityLevel: {
                 type: 'string',
                 enum: ['DRAFT', 'STANDARD', 'PREMIUM'],
-                description: '문서 품질 레벨 - DRAFT: 빠른 생성(1500토큰), STANDARD: 균형(2500토큰), PREMIUM: 최고품질(4000토큰)',
+                description: '품질 (선택, 기본값: STANDARD)',
                 default: 'STANDARD'
               },
               includeSourceAnalysis: {
                 type: 'boolean',
-                description: '소스코드 상세 분석 포함 여부',
+                description: '소스분석 포함 (선택, 기본값: true)',
                 default: true
               },
               autoSave: {
                 type: 'boolean', 
-                description: '자동 저장 여부',
+                description: '자동저장 (선택, 기본값: true)',
                 default: true
               }
             },
@@ -263,7 +263,7 @@ class FigureMCPServerV2 {
       const document = await this.executeSingleSampling(unifiedPrompt, args.qualityLevel || 'STANDARD');
 
       // Step 4: 결과 처리
-      const finalResult = await this.processResult(document, richContext, args);
+      const finalResult = await this.processResult(document, richContext, args, startTime);
 
       const duration = Date.now() - startTime;
       console.error(`✅ 원샷 문서 생성 완료: ${Math.ceil(duration / 1000)}초`);
@@ -331,7 +331,28 @@ class FigureMCPServerV2 {
     try {
       // 템플릿 로드
       console.error(`📋 템플릿 로드 중...`);
-      context.template = await this.loadTemplate(args.documentType, args.siteName);
+      context.template = await this.loadTemplate(args.documentType, context.siteName);
+      
+      // 템플릿 내용 로그 출력
+      if (context.template) {
+        console.error(`\n${'='.repeat(80)}`);
+        console.error(`📄 로드된 템플릿: ${context.template.name}`);
+        console.error(`${'='.repeat(80)}`);
+        console.error(context.template.content);
+        console.error(`${'='.repeat(80)}\n`);
+        
+        if (context.template.instructions) {
+          console.error(`📌 템플릿 지침:\n${context.template.instructions}\n`);
+        }
+        
+        if (context.template.guidelines && context.template.guidelines.length > 0) {
+          console.error(`📋 가이드라인:`);
+          context.template.guidelines.forEach((guideline: string, idx: number) => {
+            console.error(`  ${idx + 1}. ${guideline}`);
+          });
+          console.error('');
+        }
+      }
       
       // 프로젝트 정보 수집
       console.error(`📂 프로젝트 분석 중...`);
@@ -437,7 +458,14 @@ class FigureMCPServerV2 {
       return null;
       
     } catch (error) {
-      console.error('⚠️ 사이트 조회 실패:', error instanceof Error ? error.message : error);
+      console.error('⚠️ 사이트 조회 실패:');
+      if (axios.isAxiosError(error)) {
+        console.error(`  - 상태 코드: ${error.response?.status || 'N/A'}`);
+        console.error(`  - 메시지: ${error.message}`);
+        console.error(`  - 응답 데이터:`, error.response?.data);
+      } else {
+        console.error(`  - 에러:`, error);
+      }
       return null;
     }
   }
@@ -457,8 +485,15 @@ class FigureMCPServerV2 {
       console.error(`📋 템플릿 조회: ${templateUrl} ${siteId ? `(사이트: ${siteId})` : '(전역)'}`);
       const response = await this.apiClient.get(templateUrl);
       
+      // 응답 상태 확인
+      if (!response.data.success) {
+        console.error(`❌ 백엔드 응답 실패:`, response.data);
+        throw new Error(`백엔드 응답 실패: ${response.data.message || '알 수 없는 오류'}`);
+      }
+      
       if (response.data.success && response.data.data) {
         const data = response.data.data;
+        console.error(`✅ 템플릿 로드 성공: ${data.template ? `${data.template.length}자` : '데이터 없음'}`);
         return {
           content: data.template || '# 기본 템플릿\n\n문서 내용을 여기에 작성해주세요.',
           structure: data.variables || {},
@@ -471,7 +506,14 @@ class FigureMCPServerV2 {
       throw new Error('템플릿 데이터 없음');
       
     } catch (error) {
-      console.error('⚠️ 템플릿 로드 실패, 기본 템플릿 사용:', error instanceof Error ? error.message : error);
+      console.error('⚠️ 템플릿 로드 실패, 기본 템플릿 사용:');
+      if (axios.isAxiosError(error)) {
+        console.error(`  - 상태 코드: ${error.response?.status || 'N/A'}`);
+        console.error(`  - 메시지: ${error.message}`);
+        console.error(`  - 응답 데이터:`, error.response?.data);
+      } else {
+        console.error(`  - 에러:`, error instanceof Error ? error.message : error);
+      }
       
       // 문서 타입별 기본 템플릿
       const defaultTemplates: { [key: string]: string } = {
@@ -611,7 +653,146 @@ class FigureMCPServerV2 {
   }
 
   /**
-   * 🔍 소스코드 분석
+   * 🔍 검색 키워드 확장 (한글 → 영어, 동의어 추가)
+   */
+  private expandSearchKeywords(featureName: string): string[] {
+    const keywords = [featureName.toLowerCase()];
+    const feature = featureName.toLowerCase();
+    
+    // 한글 → 영어 매핑
+    const koToEnMap: { [key: string]: string[] } = {
+      '로그인': ['login', 'signin', 'auth', 'authentication'],
+      '로그아웃': ['logout', 'signout'],
+      '회원가입': ['signup', 'register', 'registration'],
+      '인증': ['auth', 'authentication', 'verify'],
+      '권한': ['permission', 'role', 'authorization'],
+      '사용자': ['user', 'account', 'member'],
+      '관리자': ['admin', 'administrator', 'manager'],
+      '대시보드': ['dashboard', 'main', 'home'],
+      '설정': ['setting', 'config', 'preference'],
+      '프로필': ['profile', 'account'],
+      '비밀번호': ['password', 'pwd', 'credential'],
+      '검색': ['search', 'query', 'find'],
+      '필터': ['filter', 'sort'],
+      '페이지': ['page', 'pagination'],
+      '목록': ['list', 'table', 'grid'],
+      '상세': ['detail', 'view', 'show'],
+      '등록': ['create', 'add', 'new', 'insert'],
+      '수정': ['update', 'edit', 'modify'],
+      '삭제': ['delete', 'remove', 'destroy'],
+      '저장': ['save', 'submit'],
+      '취소': ['cancel', 'close'],
+      '확인': ['confirm', 'ok'],
+      '알림': ['notification', 'alert', 'message'],
+      '파일': ['file', 'upload', 'download'],
+      '이미지': ['image', 'picture', 'photo'],
+      '문서': ['document', 'doc', 'file'],
+      '게시판': ['board', 'post', 'article'],
+      '댓글': ['comment', 'reply'],
+      '좋아요': ['like', 'favorite'],
+      '공유': ['share'],
+      '결제': ['payment', 'pay', 'checkout'],
+      '주문': ['order', 'purchase'],
+      '장바구니': ['cart', 'basket'],
+      '배송': ['delivery', 'shipping'],
+      '리뷰': ['review', 'rating'],
+    };
+    
+    // 매핑된 영어 키워드 추가
+    for (const [ko, enList] of Object.entries(koToEnMap)) {
+      if (feature.includes(ko)) {
+        keywords.push(...enList);
+      }
+    }
+    
+    // 공백을 언더스코어/하이픈으로 변환
+    if (feature.includes(' ')) {
+      keywords.push(feature.replace(/ /g, '_'));
+      keywords.push(feature.replace(/ /g, '-'));
+      keywords.push(feature.replace(/ /g, ''));
+    }
+    
+    return [...new Set(keywords)]; // 중복 제거
+  }
+
+  /**
+   * 🎯 핵심 키워드만 추출 (너무 범용적인 키워드 제외)
+   */
+  private extractCoreKeywords(featureName: string): string[] {
+    const feature = featureName.toLowerCase();
+    
+    // 제외할 너무 범용적인 단어들
+    const excludeWords = ['시스템', '구현', '개발', '관리', '처리', '기능', '화면', '내용'];
+    
+    // 공백과 특수문자로 분리
+    const words = feature.split(/[\s,.\-_]+/).filter(w => 
+      w.length > 1 && !excludeWords.includes(w)
+    );
+    
+    // 핵심 키워드만 한영 변환
+    const coreKeywords: string[] = [...words];
+    
+    const coreMap: { [key: string]: string[] } = {
+      '로그인': ['login', 'signin'],
+      '인증': ['auth'],
+      '피드백': ['feedback'],
+      '검색': ['search'],
+      '결과': ['result'],
+      '문서': ['document', 'doc'],
+      '업로드': ['upload'],
+      '다운로드': ['download'],
+      '파일': ['file']
+    };
+    
+    for (const [ko, enList] of Object.entries(coreMap)) {
+      if (feature.includes(ko)) {
+        coreKeywords.push(...enList);
+      }
+    }
+    
+    return [...new Set(coreKeywords)];
+  }
+
+  /**
+   * 📊 파일 관련성 점수 계산
+   */
+  private scoreFileRelevance(filePath: string, keywords: string[]): number {
+    const path_lower = filePath.toLowerCase();
+    let score = 0;
+    
+    // 1. 파일 타입 점수 (실제 구현 코드 우선)
+    const codeExtensions = ['.tsx', '.ts', '.jsx', '.js', '.py', '.java'];
+    const docExtensions = ['.md', '.txt', '.json'];
+    
+    if (codeExtensions.some(ext => path_lower.endsWith(ext))) {
+      score += 10;
+    } else if (docExtensions.some(ext => path_lower.endsWith(ext))) {
+      score -= 5; // 문서 파일은 우선순위 낮춤
+    }
+    
+    // 2. 디렉토리 점수 (구현 디렉토리 우선)
+    const priorityDirs = ['components', 'pages', 'api', 'services', 'hooks', 'app'];
+    const excludeDirs = ['node_modules', 'dist', 'build', '.git', 'data', 'backups'];
+    
+    if (priorityDirs.some(dir => path_lower.includes(`/${dir}/`) || path_lower.includes(`\\${dir}\\`))) {
+      score += 5;
+    }
+    if (excludeDirs.some(dir => path_lower.includes(dir))) {
+      score -= 20; // 제외 디렉토리는 완전 배제
+    }
+    
+    // 3. 키워드 매칭 점수
+    keywords.forEach(keyword => {
+      if (keyword.length > 2 && path_lower.includes(keyword)) {
+        score += 3;
+      }
+    });
+    
+    return score;
+  }
+
+  /**
+   * 🔍 소스코드 분석 (실제 코드 내용 포함, 개선됨)
    */
   private async analyzeSourceCode(featureName: string) {
     const analysis = {
@@ -621,27 +802,91 @@ class FigureMCPServerV2 {
     };
 
     try {
-      // 기능명과 관련된 파일들 찾기
-      const relevantFiles = this.workspaceResources.filter(r => {
-        const uri = r.uri.toLowerCase();
-        const desc = (r.description || '').toLowerCase();
-        const feature = featureName.toLowerCase();
-        
-        return uri.includes(feature) || desc.includes(feature);
-      }).slice(0, 5); // 최대 5개
+      // 핵심 키워드만 추출 (범용 키워드 제외)
+      const coreKeywords = this.extractCoreKeywords(featureName);
+      console.error(`🔍 핵심 키워드: ${coreKeywords.join(', ')}`);
+      
+      // 파일 관련성 점수 계산 및 정렬
+      const scoredFiles = this.workspaceResources
+        .map(r => ({
+          resource: r,
+          score: this.scoreFileRelevance(r.uri, coreKeywords)
+        }))
+        .filter(f => f.score > 0) // 관련성 있는 파일만
+        .sort((a, b) => b.score - a.score) // 점수 높은 순
+        .slice(0, 5); // 상위 5개
+      
+      console.error(`📊 관련 파일 ${scoredFiles.length}개 발견 (점수순 정렬)`);
+      
+      // 점수와 함께 파일 목록 출력
+      scoredFiles.forEach((sf, idx) => {
+        console.error(`  ${idx + 1}. [점수: ${sf.score}] ${path.basename(sf.resource.uri)}`);
+      });
+      
+      const relevantFiles = scoredFiles.map(f => f.resource);
 
-      analysis.relatedFiles = relevantFiles.map(f => ({
-        path: f.uri.replace('file://', ''),
-        description: f.description || 'Related file'
-      }));
+      // 실제 파일 내용 읽기
+      for (const file of relevantFiles) {
+        try {
+          const filePath = file.uri.replace('file://', '');
+          const content = await fs.readFile(filePath, 'utf-8');
+          
+          // 파일이 너무 크면 일부만 (최대 500줄로 축소 - 토큰 절약)
+          const lines = content.split('\n');
+          const truncated = lines.length > 500;
+          const finalContent = truncated ? lines.slice(0, 500).join('\n') : content;
+          
+          analysis.relatedFiles.push({
+            path: filePath,
+            description: file.description || 'Related file',
+            content: finalContent,
+            truncated,
+            totalLines: lines.length,
+            language: path.extname(filePath).substring(1)
+          });
+          
+          console.error(`  ✓ 읽기 성공: ${path.basename(filePath)} (${lines.length}줄)`);
+        } catch (error) {
+          // 파일 읽기 실패 시 경로만 포함
+          console.error(`⚠️ 파일 읽기 실패: ${file.uri} - ${error instanceof Error ? error.message : error}`);
+          analysis.relatedFiles.push({
+            path: file.uri.replace('file://', ''),
+            description: file.description || 'Related file (content unavailable)',
+            content: null,
+            error: error instanceof Error ? error.message : 'Unknown error'
+          });
+        }
+      }
 
-      analysis.summary = `${featureName} 관련 ${analysis.relatedFiles.length}개 파일 발견`;
+      analysis.summary = `${featureName} 관련 ${analysis.relatedFiles.length}개 파일 발견 (${analysis.relatedFiles.filter(f => f.content).length}개 읽기 성공)`;
 
     } catch (error) {
       console.error('⚠️ 소스코드 분석 실패:', error);
     }
 
     return analysis;
+  }
+
+  /**
+   * ✅ 프로젝트 컨텍스트 유효성 검사
+   */
+  private hasValidProjectContext(context: any): boolean {
+    const projectInfo = context.projectInfo;
+    const sourceAnalysis = context.sourceAnalysis;
+    
+    // 프로젝트 정보가 유효한지 확인
+    const hasValidProjectInfo = projectInfo && 
+      projectInfo.name !== 'Unknown Project' &&
+      projectInfo.path !== 'Not Set' &&
+      projectInfo.fileCount > 0;
+    
+    // 소스코드 분석이 유효한지 확인
+    const hasValidSourceAnalysis = sourceAnalysis && 
+      sourceAnalysis.relatedFiles && 
+      sourceAnalysis.relatedFiles.length > 0;
+    
+    // 둘 중 하나라도 유효하면 프로젝트 컨텍스트 섹션 표시
+    return hasValidProjectInfo || hasValidSourceAnalysis;
   }
 
   /**
@@ -661,13 +906,13 @@ class FigureMCPServerV2 {
 ## 📋 요구사항
 ${context.requirements || '기본 요구사항에 따라 생성해주세요.'}
 
-## 🏗️ 프로젝트 컨텍스트
+${this.hasValidProjectContext(context) ? `## 🏗️ 프로젝트 컨텍스트
 
 ### 프로젝트 정보
-- **프로젝트명**: ${context.projectInfo?.name || 'Unknown'}
-- **경로**: ${context.projectInfo?.path || 'Not Set'}
-- **파일 수**: ${context.projectInfo?.fileCount || 0}개
-- **주요 기술**: ${context.projectInfo?.technologies?.join(', ') || 'Unknown'}
+- **프로젝트명**: ${context.projectInfo?.name}
+- **경로**: ${context.projectInfo?.path}
+- **파일 수**: ${context.projectInfo?.fileCount}개
+- **주요 기술**: ${context.projectInfo?.technologies?.join(', ')}
 
 ${context.projectInfo?.structure?.length > 0 ? `### 주요 파일 구조
 ${context.projectInfo.structure.map((file: any) => 
@@ -677,10 +922,23 @@ ${context.projectInfo.structure.map((file: any) =>
 ${context.sourceAnalysis?.relatedFiles?.length > 0 ? `### 관련 소스코드
 ${context.sourceAnalysis.summary}
 
-**관련 파일들**:
-${context.sourceAnalysis.relatedFiles.map((file: any) =>
-  `- **${file.path}**: ${file.description}`
-).join('\n')}` : ''}
+${context.sourceAnalysis.relatedFiles.map((file: any) => {
+  if (!file.content) {
+    return `#### 📄 ${path.basename(file.path)}
+- **경로**: \`${file.path}\`
+- **설명**: ${file.description}
+- **상태**: 읽기 실패 (${file.error || '알 수 없는 오류'})`;
+  }
+  
+  return `#### 📄 ${path.basename(file.path)}
+- **경로**: \`${file.path}\`
+- **언어**: ${file.language}
+- **줄 수**: ${file.totalLines}줄${file.truncated ? ` (처음 1000줄만 표시)` : ''}
+
+\`\`\`${file.language}
+${file.content}
+\`\`\``;
+}).join('\n\n')}` : ''}` : ''}
 
 ## 📖 템플릿 기준
 다음 템플릿 구조를 **완전히 준수**하여 생성하세요:
@@ -690,25 +948,15 @@ ${context.template?.content || '# 기본 구조\n\n## 1. 개요\n## 2. 상세내
 \`\`\`
 
 ## 🎨 생성 지침
-
-### 품질 요구사항
 ${qualitySettings.description}
 
-### 출력 형식 요구사항
-1. **언어**: 한국어
-2. **형식**: 마크다운
-3. **실무 활용도**: 개발팀이 바로 사용 가능한 수준
-4. **완성도**: 모든 섹션을 빠짐없이 완전히 작성
-5. **구체성**: 실제 프로젝트 정보를 최대한 활용
+**출력**: 한국어 마크다운, 실무 즉시 사용 가능, 모든 섹션 완전 작성, 구체적 파일명/함수명 포함
 
-### 필수 포함 사항
-- 구체적인 파일명, 함수명, 기술명 활용
-- 실무 중심의 액션 가이드
-- 프로젝트 컨텍스트와 일치하는 내용
-- 완전한 문서 (초안이 아닌 완성본)
+## 필수 MCP Resources 활용
+위에 제공된 소스는 초기 참고용입니다. **MCP Resources로 추가 파일을 직접 읽어** 정확성을 높이세요.
 
-## 🚀 생성 요청
-위의 모든 정보를 바탕으로 **완전하고 실무에서 바로 사용 가능한 ${context.documentType} 문서**를 생성해주세요.
+## 생성 요청
+위 템플릿 구조를 준수하여 **실무용 ${context.documentType} 문서**를 생성하세요.
 
 생성 시점: ${context.timestamp}`;
   }
@@ -746,16 +994,31 @@ ${qualitySettings.description}
     
     console.error(`🤖 AI 생성 중... (${settings.maxTokens} 토큰, 예상 시간: ${settings.estimatedTime})`);
 
-    const response = await this.server.createMessage({
+    const samplingRequest = {
       messages: [{
-        role: 'user',
+        role: 'user' as const,
         content: {
-          type: 'text',
+          type: 'text' as const,
           text: prompt
         }
       }],
       maxTokens: settings.maxTokens
-    });
+    };
+    
+    // Sampling 요청 데이터 로깅
+    console.error(`\n${'='.repeat(80)}`);
+    console.error(`📡 AI Sampling 요청 데이터`);
+    console.error(`${'='.repeat(80)}`);
+    console.error(`- 최대 토큰: ${samplingRequest.maxTokens}`);
+    console.error(`- 메시지 수: ${samplingRequest.messages.length}`);
+    console.error(`- 프롬프트 길이: ${prompt.length.toLocaleString()}자`);
+    console.error(`- 프롬프트 줄 수: ${prompt.split('\n').length}줄`);
+    console.error(`${'='.repeat(80)}`);
+    console.error(`\n📝 전송될 프롬프트 내용:\n`);
+    console.error(prompt);
+    console.error(`\n${'='.repeat(80)}\n`);
+
+    const response = await this.server.createMessage(samplingRequest);
 
     return {
       content: response.content.type === 'text' ? response.content.text : String(response.content),
@@ -769,7 +1032,7 @@ ${qualitySettings.description}
   /**
    * 💾 결과 처리 (저장 및 백엔드 업로드)
    */
-  private async processResult(document: any, context: any, args: any) {
+  private async processResult(document: any, context: any, args: any, startTime: number) {
     const fileName = `${args.documentType}_${args.featureName.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.md`;
     
     let savedPath = '';
@@ -795,7 +1058,7 @@ ${qualitySettings.description}
           tokensUsed: document.tokensUsed,
           projectName: context.projectInfo?.name,
           sourceFilesAnalyzed: context.sourceAnalysis?.relatedFiles?.length || 0,
-          processingTime: Date.now() - context.startTime,
+          processingTime: Date.now() - startTime,
           method: 'single_sampling',
           documentId: `mcp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
         }, siteId);
@@ -836,40 +1099,53 @@ ${qualitySettings.description}
       // 제목 생성
       const title = `${this.getDocumentTypeDisplayName(metadata.documentType)} - ${metadata.featureName}`;
       
-      // 메타데이터 구성 (필터링 가능하게)
-      const documentMetadata = {
+      // 메타데이터 구성 (null/undefined 값 방지, 배열을 문자열로 변환)
+      const tags = [
+        `mcp:${(metadata.documentType || 'unknown').toLowerCase()}`,
+        `project:${metadata.projectName || 'unknown'}`,
+        `quality:${(metadata.qualityLevel || 'standard').toLowerCase()}`,
+        `generator:figure-mcp`,
+        'auto-generated'
+      ].join(', '); // 쉼표로 구분된 문자열로 변환
+      
+      const documentMetadata: Record<string, string | number | boolean> = {
         // 기본 정보
-        documentType: metadata.documentType,
-        featureName: metadata.featureName,
-        qualityLevel: metadata.qualityLevel || 'STANDARD',
+        documentType: String(metadata.documentType || 'unknown'),
+        featureName: String(metadata.featureName || 'unknown'),
+        qualityLevel: String(metadata.qualityLevel || 'STANDARD'),
+        
+        // 문서 카테고리 (RAG 필터링용)
+        documentCategory: 'completed_artifact', // 템플릿이 아닌 완성된 산출물
+        isTemplate: false, // 템플릿 여부 명시
         
         // 생성 정보
-        generatedAt: metadata.generatedAt,
+        generatedAt: String(metadata.generatedAt || new Date().toISOString()),
         generatedBy: 'figure-mcp',
         generatorVersion: '2.0.0',
         
         // AI 정보
-        aiModel: metadata.aiModel || 'claude-3-5-sonnet',
-        tokensUsed: metadata.tokensUsed,
-        contentLength: content.length,
+        aiModel: String(metadata.aiModel || 'claude-3-5-sonnet'),
+        tokensUsed: Number(metadata.tokensUsed || 0),
+        contentLength: Number(content.length),
         
         // 프로젝트 정보
-        projectName: metadata.projectName || 'unknown',
-        sourceFilesAnalyzed: metadata.sourceFilesAnalyzed || 0,
+        projectName: String(metadata.projectName || 'unknown'),
+        sourceFilesAnalyzed: Number(metadata.sourceFilesAnalyzed || 0),
         
         // 처리 정보
-        processingTime: metadata.processingTime,
-        method: metadata.method || 'single_sampling',
+        processingTime: Number(metadata.processingTime || 0),
+        method: String(metadata.method || 'single_sampling'),
         
-        // 태그 (필터링용)
-        tags: [
-          `mcp:${metadata.documentType.toLowerCase()}`,
-          `project:${metadata.projectName || 'unknown'}`,
-          `quality:${metadata.qualityLevel || 'standard'}`.toLowerCase(),
-          `generator:figure-mcp`,
-          'auto-generated'
-        ]
+        // 태그 (쉼표로 구분된 문자열)
+        tags: tags
       };
+      
+      // undefined/null 값 제거
+      const cleanMetadata = Object.fromEntries(
+        Object.entries(documentMetadata).filter(([_, value]) => 
+          value !== null && value !== undefined
+        )
+      );
       
       // 백엔드 API 호출
       const uploadData = {
@@ -877,8 +1153,8 @@ ${qualitySettings.description}
         content,
         doc_type: docType,
         site_id: siteId,
-        source_url: `figure-mcp://document/${metadata.documentId}`,
-        metadata: documentMetadata
+        source_url: `figure-mcp://document/${metadata.documentId || 'unknown'}`,
+        metadata: cleanMetadata
       };
       
       console.error(`📋 업로드 데이터: 제목="${title}", 사이트=${siteId}, 크기=${content.length}자`);
@@ -895,7 +1171,15 @@ ${qualitySettings.description}
       }
       
     } catch (error) {
-      console.error('❌ 백엔드 업로드 실패:', error instanceof Error ? error.message : error);
+      console.error('❌ 백엔드 업로드 실패:');
+      if (axios.isAxiosError(error)) {
+        console.error(`  - 상태 코드: ${error.response?.status || 'N/A'}`);
+        console.error(`  - 메시지: ${error.message}`);
+        console.error(`  - URL: ${error.config?.url}`);
+        console.error(`  - 응답 데이터:`, error.response?.data);
+      } else {
+        console.error(`  - 에러:`, error instanceof Error ? error.message : error);
+      }
       return { documentId: '', uploadSuccess: false };
     }
   }

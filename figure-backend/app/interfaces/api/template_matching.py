@@ -37,7 +37,14 @@ async def get_matching_rules(
 ) -> APIResponse[List[TemplateMatchingRuleResponse]]:
     """매칭 규칙 목록 조회"""
     try:
-        query = db.query(TemplateMatchingRuleModel)
+        # 유효한 MCP 요청 타입만 조회하도록 필터링
+        valid_mcp_types = [e.value for e in MCPRequestType]
+        valid_template_types = [e.value for e in TemplateType]
+        
+        query = db.query(TemplateMatchingRuleModel).filter(
+            TemplateMatchingRuleModel.mcp_request_type.in_(valid_mcp_types),
+            TemplateMatchingRuleModel.template_type.in_(valid_template_types)
+        )
         
         # 필터링
         if site_id is not None:
@@ -51,8 +58,22 @@ async def get_matching_rules(
             TemplateMatchingRuleModel.created_at.desc()
         ).all()
         
+        # 유효하지 않은 규칙 수를 로그로 출력
+        invalid_query = db.query(TemplateMatchingRuleModel).filter(
+            ~TemplateMatchingRuleModel.mcp_request_type.in_(valid_mcp_types) |
+            ~TemplateMatchingRuleModel.template_type.in_(valid_template_types)
+        )
+        invalid_count = invalid_query.count()
+        if invalid_count > 0:
+            logger.warning(f"유효하지 않은 매칭 규칙 {invalid_count}개를 건너뛰었습니다.")
+            # 유효하지 않은 규칙들을 로그에 출력
+            invalid_rules = invalid_query.all()
+            for rule in invalid_rules:
+                logger.warning(f"무시된 규칙: ID={rule.id}, MCP={rule.mcp_request_type}, Template={rule.template_type}")
+        
         responses = []
         for rule_model in rules:
+            # 이미 유효한 타입만 조회했으므로 안전하게 생성 가능
             rule = TemplateMatchingRule(
                 id=rule_model.id,
                 mcp_request_type=MCPRequestType(rule_model.mcp_request_type),
@@ -94,6 +115,7 @@ async def create_matching_rule(
     """매칭 규칙 생성"""
     try:
         # 중복 체크 (같은 MCP 요청 타입과 사이트 ID)
+        logger.info(f"중복 체크: mcp_request_type={request.mcp_request_type.value}, site_id={request.site_id}")
         existing = db.query(TemplateMatchingRuleModel).filter(
             TemplateMatchingRuleModel.mcp_request_type == request.mcp_request_type.value,
             TemplateMatchingRuleModel.site_id == request.site_id,
@@ -101,6 +123,7 @@ async def create_matching_rule(
         ).first()
         
         if existing:
+            logger.info(f"중복 규칙 발견: ID={existing.id}, MCP={existing.mcp_request_type}, Site={existing.site_id}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"동일한 MCP 요청 타입({request.mcp_request_type})과 사이트({request.site_id or '전체'})에 대한 활성 규칙이 이미 존재합니다."
@@ -147,10 +170,11 @@ async def create_matching_rule(
         raise
     except Exception as e:
         logger.error(f"매칭 규칙 생성 오류: {e}")
+        logger.error(f"요청 데이터: mcp_request_type={request.mcp_request_type}, template_type={request.template_type}, site_id={request.site_id}")
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="매칭 규칙 생성 중 오류가 발생했습니다."
+            detail=f"매칭 규칙 생성 중 오류가 발생했습니다: {str(e)}"
         )
 
 
